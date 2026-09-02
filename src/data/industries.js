@@ -1,0 +1,68 @@
+export const INDUSTRIES = [
+  {
+    id: 'i1', name: 'Tata Steel Foundation', short: 'Tata Steel', type: 'CSR Arm', hq: 'Jamshedpur',
+    domains: ['Water & Sanitation', 'Rural Development', 'Education', 'Healthcare'],
+    tech: ['Water treatment', 'Community infrastructure', 'Skilling'],
+    csrFocus: ['Rural livelihoods', 'Drinking water', 'Tribal education'],
+    funding: '₹25 Cr / yr', capacity: 'High', supports: ['Funding', 'Infrastructure', 'Deployment', 'Mentorship'],
+    projects: 46, hue: 210,
+  },
+  {
+    id: 'i2', name: 'HydroSense Technologies', short: 'HydroSense', type: 'Startup', hq: 'Ranchi',
+    domains: ['Water & Sanitation', 'Environment', 'Agriculture'],
+    tech: ['IoT flow sensors', 'LoRaWAN networks', 'Water quality analytics'],
+    csrFocus: ['Water conservation'],
+    funding: '₹2.5 Cr / yr', capacity: 'Medium', supports: ['Technology', 'Prototyping', 'Testing', 'Mentorship'],
+    projects: 12, hue: 190,
+  },
+  {
+    id: 'i3', name: 'GreenFields AgriTech', short: 'GreenFields', type: 'MSME', hq: 'Hazaribagh',
+    domains: ['Agriculture', 'Rural Development', 'Environment'],
+    tech: ['Drip irrigation', 'Soil sensors', 'Farmer advisory apps'],
+    csrFocus: ['Farmer income', 'Sustainable farming'],
+    funding: '₹1.2 Cr / yr', capacity: 'Medium', supports: ['Technology', 'Infrastructure', 'Prototyping', 'Deployment'],
+    projects: 18, hue: 120,
+  },
+  {
+    id: 'i4', name: 'MediReach Health Systems', short: 'MediReach', type: 'Startup', hq: 'Ranchi',
+    domains: ['Healthcare', 'Accessibility', 'Public Services'],
+    tech: ['Telemedicine kiosks', 'Portable diagnostics', 'Health records'],
+    csrFocus: ['Rural healthcare access'],
+    funding: '₹3.8 Cr / yr', capacity: 'Medium', supports: ['Technology', 'Testing', 'Deployment', 'Mentorship'],
+    projects: 15, hue: 350,
+  },
+  {
+    id: 'i5', name: 'UrbanGrid Infra Solutions', short: 'UrbanGrid', type: 'Enterprise', hq: 'Dhanbad',
+    domains: ['Urban Infrastructure', 'Public Services', 'Environment'],
+    tech: ['Smart lighting', 'Drainage engineering', 'Traffic systems'],
+    csrFocus: ['Safe cities'],
+    funding: '₹9 Cr / yr', capacity: 'High', supports: ['Infrastructure', 'Funding', 'Deployment', 'Testing'],
+    projects: 29, hue: 265,
+  },
+  {
+    id: 'i6', name: 'EduSpark Learning Labs', short: 'EduSpark', type: 'Startup', hq: 'Ranchi',
+    domains: ['Education', 'Accessibility', 'Rural Development'],
+    tech: ['Offline learning devices', 'Vernacular content', 'Assessment AI'],
+    csrFocus: ['Digital literacy', 'Girl child education'],
+    funding: '₹1.6 Cr / yr', capacity: 'Medium', supports: ['Technology', 'Mentorship', 'Prototyping'],
+    projects: 21, hue: 250,
+  },
+  {
+    id: 'i7', name: 'Jharkhand Renewables Ltd.', short: 'JR Renewables', type: 'Enterprise', hq: 'Bokaro',
+    domains: ['Environment', 'Rural Development', 'Urban Infrastructure', 'Water & Sanitation'],
+    tech: ['Solar micro-grids', 'Battery storage', 'Solar pumping'],
+    csrFocus: ['Clean energy access'],
+    funding: '₹12 Cr / yr', capacity: 'High', supports: ['Funding', 'Technology', 'Infrastructure', 'Deployment'],
+    projects: 24, hue: 40,
+  },
+  {
+    id: 'i8', name: 'AccessAble Devices', short: 'AccessAble', type: 'MSME', hq: 'Jamshedpur',
+    domains: ['Accessibility', 'Healthcare', 'Public Services'],
+    tech: ['Assistive hardware', '3D printed aids', 'Screen-reader tooling'],
+    csrFocus: ['Divyangjan empowerment'],
+    funding: '₹0.9 Cr / yr', capacity: 'Low', supports: ['Prototyping', 'Technology', 'Mentorship'],
+    projects: 9, hue: 320,
+  },
+];
+
+export const industryById = (id) => INDUSTRIES.find((i) => i.id === id);
