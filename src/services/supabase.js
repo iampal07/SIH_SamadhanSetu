@@ -138,15 +138,34 @@ export async function fetchUserProfile(userId) {
  */
 export async function saveUserProfile(profileData) {
   if (!isSupabaseConfigured) return profileData;
-  const { data, error } = await supabase
+  const payload = {
+    ...profileData,
+    updated_at: new Date().toISOString(),
+  };
+
+  let { data, error } = await supabase
     .from('profiles')
-    .upsert({
-      ...profileData,
-      updated_at: new Date().toISOString(),
-    })
+    .upsert(payload)
     .select()
     .single();
 
-  if (error) throw error;
+  // If Supabase schema cache hasn't loaded 'is_onboarded' or it doesn't exist yet, retry without it
+  if (error && (error.message?.includes('is_onboarded') || error.details?.includes('is_onboarded') || error.code === 'PGRST204')) {
+    console.warn("Retrying profile upsert without 'is_onboarded' column:", error.message);
+    const fallbackPayload = { ...payload };
+    delete fallbackPayload.is_onboarded;
+
+    const retry = await supabase
+      .from('profiles')
+      .upsert(fallbackPayload)
+      .select()
+      .single();
+
+    if (retry.error) throw retry.error;
+    data = { ...retry.data, is_onboarded: true };
+  } else if (error) {
+    throw error;
+  }
+
   return data;
 }

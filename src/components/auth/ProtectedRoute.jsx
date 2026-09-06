@@ -23,7 +23,9 @@ export default function ProtectedRoute({ children, allowedRoles }) {
     return <Navigate to={`/login?redirect=${encodeURIComponent(location.pathname)}`} replace />;
   }
 
-  const isOnboarded = isDemoMode || profile?.is_onboarded === true ||
+  const isOnboarded = isDemoMode || 
+    profile?.is_onboarded === true ||
+    user?.user_metadata?.is_onboarded === true ||
     Boolean(profile?.role && localStorage.getItem('samadhan_onboarded_' + user.id) === 'true');
 
   // If authenticated but onboarding not completed, redirect to role onboarding

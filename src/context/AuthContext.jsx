@@ -134,6 +134,24 @@ export function AuthProvider({ children }) {
 
     if (!user) throw new Error('No authenticated user found to assign role');
 
+    // 1. Update Supabase Auth user metadata (always succeeds independently of database schema)
+    try {
+      await supabase.auth.updateUser({
+        data: {
+          role,
+          organization_name: organizationName || '',
+          district: district || 'Ranchi',
+          is_onboarded: true,
+        },
+      });
+    } catch (metaErr) {
+      console.warn('Could not update user metadata:', metaErr);
+    }
+
+    // 2. Persist local onboarded flag
+    localStorage.setItem('samadhan_onboarded_' + user.id, 'true');
+
+    // 3. Upsert to public.profiles table
     const profileData = {
       id: user.id,
       email: user.email,
@@ -146,10 +164,10 @@ export function AuthProvider({ children }) {
       is_onboarded: true,
     };
 
-    localStorage.setItem('samadhan_onboarded_' + user.id, 'true');
     const saved = await saveUserProfile(profileData);
-    setProfile(saved);
-    return saved;
+    const resolvedProfile = { ...saved, role, is_onboarded: true };
+    setProfile(resolvedProfile);
+    return resolvedProfile;
   }, [user, isDemoMode]);
 
   // Sign out

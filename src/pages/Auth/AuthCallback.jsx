@@ -25,12 +25,17 @@ export default function AuthCallback() {
         setStatus('Checking profile onboarding...');
         const profile = await fetchUserProfile(session.user.id);
 
-        const isOnboarded = profile?.is_onboarded === true || 
+        const userMeta = session.user?.user_metadata || {};
+        const isOnboarded = 
+          profile?.is_onboarded === true || 
+          userMeta.is_onboarded === true ||
           (profile?.role && localStorage.getItem('samadhan_onboarded_' + session.user.id) === 'true');
 
-        if (profile?.role && isOnboarded) {
+        const resolvedRole = profile?.role || userMeta.role;
+
+        if (resolvedRole && isOnboarded) {
           // Send returning user straight to their role workspace
-          const destination = profile.role === 'govt' ? '/government' : `/${profile.role}`;
+          const destination = resolvedRole === 'govt' ? '/government' : `/${resolvedRole}`;
           navigate(destination, { replace: true });
         } else {
           // First-time or un-onboarded user -> MUST choose role
