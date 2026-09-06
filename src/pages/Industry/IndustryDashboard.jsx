@@ -15,6 +15,7 @@ import { INDUSTRIES } from '../../data/industries';
 import { CATEGORY_KEYS, ROLES, STAGE_INDEX, STAGES, SUPPORT_TYPES, catMeta } from '../../data/constants';
 import { matchIndustries } from '../../services/aiEngine';
 import { timeAgo, fmtFull, cx } from '../../utils/format';
+import { insertIndustryCommitmentInDb, updateChallengeInDb } from '../../services/db';
 
 const R = ROLES.industry;
 
@@ -390,14 +391,22 @@ function ScalableReadyProjects({ firm, list }) {
     e.preventDefault();
     if (!selectedProto) return;
 
-    dispatch({
-      type: 'PLEDGE_SCALING_FUNDING',
-      id: selectedProto.id,
+    const commitmentPayload = {
       industryId: firm.id,
       industryName: firm.name,
       amount: Number(fundingAmount) || 1000000,
       supports,
       notes,
+    };
+
+    // Save to Supabase Database
+    insertIndustryCommitmentInDb(commitmentPayload).catch((err) => console.warn('Supabase DB commitment note:', err));
+    updateChallengeInDb(selectedProto.id, { status: 'pilot' }).catch((err) => console.warn('Supabase DB challenge status update note:', err));
+
+    dispatch({
+      type: 'PLEDGE_SCALING_FUNDING',
+      id: selectedProto.id,
+      ...commitmentPayload,
     });
 
     toast(`Successfully pledged ₹${Number(fundingAmount).toLocaleString('en-IN')} to scale ${selectedProto.code}!`, 'success');

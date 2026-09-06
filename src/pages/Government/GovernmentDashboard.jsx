@@ -17,6 +17,7 @@ import { INDUSTRIES } from '../../data/industries';
 import { TREND_DATA } from '../../data/seedChallenges';
 import { CATEGORY_KEYS, DISTRICT_NAMES, ROLES, STAGE_INDEX, STAGES, catMeta } from '../../data/constants';
 import { timeAgo, fmtFull, cx, priorityTone } from '../../utils/format';
+import { updateChallengeInDb } from '../../services/db';
 
 const R = ROLES.govt;
 
@@ -209,6 +210,11 @@ function ValidateModal({ challenge, onClose }) {
   const open = !!challenge;
 
   const submit = () => {
+    updateChallengeInDb(challenge.id, {
+      status: 'validated',
+      validation: { status: 'validated', by: 'District Innovation Cell', note },
+    }).catch((err) => console.warn('Supabase DB validation note:', err));
+
     dispatch({ type: 'VALIDATE', id: challenge.id, note });
     toast(`${challenge.code} validated — routed to ${challenge.ai?.universityMatches.slice(0, 3).length ?? 3} universities`, 'success');
     onClose();

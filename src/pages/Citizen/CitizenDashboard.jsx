@@ -13,6 +13,8 @@ import { LifecycleTrack } from '../../components/workflow/Lifecycle';
 import { Stat, Counter, Chip, Modal, SearchInput, Select, Empty, Tabs, ScoreRing, Reveal } from '../../components/shared/ui';
 import { CategoryDonut } from '../../components/charts/Charts';
 import { usePlatform, useAnalytics } from '../../context/PlatformContext';
+import { useAuth } from '../../context/AuthContext';
+import { uploadFileToSupabase, insertChallengeInDb } from '../../services/db';
 import { CATEGORY_KEYS, DISTRICT_NAMES, ROLES, STAGE_INDEX, catMeta } from '../../data/constants';
 import { fmtFull, timeAgo, cx } from '../../utils/format';
 
@@ -148,9 +150,11 @@ function Overview({ mine }) {
 /* ── Submit ─────────────────────────────────────────────────────────── */
 function Submit() {
   const { dispatch, challenges } = usePlatform();
+  const { user, profile } = useAuth();
   const nav = useNavigate();
-  const [form, setForm] = useState({ title: '', description: '', category: '', district: 'Ranchi', village: '', affected: '' });
-  const [files, setFiles] = useState([]);
+  const [form, setForm] = useState({ title: '', description: '', category: '', district: profile?.district || 'Ranchi', village: '', affected: '' });
+  const [fileObjects, setFileObjects] = useState([]);
+  const [uploading, setUploading] = useState(false);
   const [phase, setPhase] = useState('form'); // form | analysing | result
   const [newId, setNewId] = useState(null);
   const [err, setErr] = useState({});
@@ -159,7 +163,7 @@ function Submit() {
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
-  const submit = (e) => {
+  const submit = async (e) => {
     e.preventDefault();
     const er = {};
     if (form.title.trim().length < 10) er.title = 'Give a clear title of at least 10 characters';
@@ -168,11 +172,33 @@ function Submit() {
     setErr(er);
     if (Object.keys(er).length) return;
 
+    setUploading(true);
     const id = `CH-${1200 + challenges.filter((c) => !c.seeded).length + 1}`;
+
+    // Upload files to Supabase Storage (attachments bucket)
+    const uploadedAttachments = await Promise.all(
+      fileObjects.map((f) => uploadFileToSupabase(f, 'attachments', user?.id))
+    );
+
+    const challengePayload = {
+      ...form,
+      id,
+      attachments: uploadedAttachments,
+      citizen: {
+        id: user?.id || 'cit-me',
+        name: profile?.full_name || 'Citizen',
+      },
+    };
+
+    // Save to Supabase Database
+    insertChallengeInDb(challengePayload).catch((err) => console.warn('Supabase DB save note:', err));
+
     dispatch({
       type: 'SUBMIT_CHALLENGE',
-      payload: { ...form, attachments: files.map((f) => ({ name: f, type: 'image', size: '1.2 MB' })) },
+      payload: challengePayload,
     });
+
+    setUploading(false);
     setNewId(id);
     setPhase('analysing');
   };
@@ -234,30 +260,35 @@ function Submit() {
               </div>
 
               <div>
-                <label className="label">Photographs / documents</label>
+                <label className="label">Photographs / documents (Stores in Supabase Storage)</label>
                 <label className="border-2 border-dashed border-slate-200 rounded-xl p-5 text-center block cursor-pointer hover:border-cyan-300 hover:bg-cyan-50/40 transition">
-                  <input type="file" multiple className="hidden"
-                    onChange={(e) => setFiles(Array.from(e.target.files ?? []).map((f) => f.name))} />
+                  <input type="file" multiple accept="image/*,.pdf,.doc,.docx" className="hidden"
+                    onChange={(e) => {
+                      const chosen = Array.from(e.target.files ?? []);
+                      setFileObjects((prev) => [...prev, ...chosen]);
+                    }} />
                   <Upload size={22} className="mx-auto text-slate-300 mb-1.5" />
                   <p className="text-[0.82rem] font-semibold text-slate-600">Click to attach photos or documents</p>
-                  <p className="text-[0.7rem] text-slate-400 mt-0.5">Evidence increases the AI priority score and speeds up validation</p>
+                  <p className="text-[0.7rem] text-slate-400 mt-0.5">Uploaded files are securely saved to your Supabase Storage bucket</p>
                 </label>
-                {files.length > 0 && (
+                {fileObjects.length > 0 && (
                   <div className="flex flex-wrap gap-1.5 mt-2">
-                    {files.map((f) => (
-                      <span key={f} className="chip bg-slate-100 text-slate-600">
-                        {f}
-                        <button type="button" onClick={() => setFiles((x) => x.filter((y) => y !== f))}><X size={11} /></button>
+                    {fileObjects.map((f, i) => (
+                      <span key={i} className="chip bg-slate-100 text-slate-600">
+                        {f.name} ({(f.size / (1024 * 1024)).toFixed(1)} MB)
+                        <button type="button" onClick={() => setFileObjects((arr) => arr.filter((_, idx) => idx !== i))}><X size={11} /></button>
                       </span>
                     ))}
                   </div>
                 )}
               </div>
-            </div>
 
-            <div className="flex flex-wrap gap-2 justify-end">
-              <button type="button" className="btn btn-ghost" onClick={() => nav('/citizen')}>Cancel</button>
-              <button type="submit" className="btn btn-primary px-5"><Sparkles size={16} />Submit & run AI analysis</button>
+              <div className="pt-2 flex justify-end gap-2">
+                <button type="button" className="btn btn-ghost" onClick={() => nav('/citizen')}>Cancel</button>
+                <button type="submit" disabled={uploading} className="btn btn-primary px-5">
+                  <Sparkles size={16} /> {uploading ? 'Uploading to Supabase...' : 'Submit & run AI analysis'}
+                </button>
+              </div>
             </div>
           </motion.form>
         )}

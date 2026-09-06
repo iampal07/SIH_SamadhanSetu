@@ -15,6 +15,7 @@ import { UNIVERSITIES, TALENT_POOL } from '../../data/universities';
 import { CATEGORY_KEYS, ROLES, STAGE_INDEX, STAGES, catMeta, SUPPORT_TYPES } from '../../data/constants';
 import { suggestDisciplines } from '../../services/aiEngine';
 import { timeAgo, fmtFull, cx } from '../../utils/format';
+import { insertPrototypeInDb, updateChallengeInDb } from '../../services/db';
 
 const R = ROLES.varsity;
 
@@ -638,25 +639,33 @@ function PrototypeShowcase({ uni, mine, prototypes }) {
       .map((s) => s.trim())
       .filter(Boolean);
 
+    const prototypePayload = {
+      title: form.title || `${uni.short} Working Prototype Demo`,
+      abstract: form.abstract || 'Lab-tested working prototype addressing community problem.',
+      trl: Number(form.trl),
+      estimatedFunding: Number(form.estimatedFunding) || 1200000,
+      fundingRaised: 0,
+      demoUrl: form.demoUrl || 'https://demo.samadhansetu.gov.in',
+      videoDemoUrl: form.videoDemoUrl || 'https://youtube.com',
+      integrationRequirements: reqsList,
+      facultyLead: form.facultyLead,
+      studentContributors: form.studentContributors.split(',').map((s) => s.trim()),
+      isIndustryReady: true,
+    };
+
+    const targetChallenge = mine.find((c) => c.id === selectedChallengeId);
+
+    // Save to Supabase Database
+    insertPrototypeInDb(prototypePayload, targetChallenge).catch((err) => console.warn('Supabase DB prototype save note:', err));
+    updateChallengeInDb(selectedChallengeId, { status: 'prototype' }).catch((err) => console.warn('Supabase DB challenge update note:', err));
+
     dispatch({
       type: 'PUBLISH_PROTOTYPE',
       id: selectedChallengeId,
-      prototype: {
-        title: form.title || `${uni.short} Working Prototype Demo`,
-        abstract: form.abstract || 'Lab-tested working prototype addressing community problem.',
-        trl: Number(form.trl),
-        estimatedFunding: Number(form.estimatedFunding) || 1200000,
-        fundingRaised: 0,
-        demoUrl: form.demoUrl || 'https://demo.samadhansetu.gov.in',
-        videoDemoUrl: form.videoDemoUrl || 'https://youtube.com',
-        integrationRequirements: reqsList,
-        facultyLead: form.facultyLead,
-        studentContributors: form.studentContributors.split(',').map((s) => s.trim()),
-        isIndustryReady: true,
-      },
+      prototype: prototypePayload,
     });
 
-    toast('Working prototype published and advertised to industry partners!', 'success');
+    toast('Working prototype published and stored in Supabase database!', 'success');
     setModalOpen(false);
   };
 

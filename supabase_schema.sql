@@ -168,3 +168,20 @@ create policy "Industry commitments are viewable by authenticated users"
 
 create policy "Industry users can pledge commitments"
   on public.industry_commitments for insert with check (auth.uid() = industry_id or auth.uid() is not null);
+
+-- 9. STORAGE BUCKET CONFIGURATION FOR ATTACHMENTS & PROTOTYPE MEDIA
+insert into storage.buckets (id, name, public)
+values ('attachments', 'attachments', true)
+on conflict (id) do nothing;
+
+create policy "Public Access to attachments"
+  on storage.objects for select
+  using (bucket_id = 'attachments');
+
+create policy "Authenticated users can upload attachments"
+  on storage.objects for insert
+  with check (bucket_id = 'attachments');
+
+create policy "Users can update their attachments"
+  on storage.objects for update
+  using (bucket_id = 'attachments');
