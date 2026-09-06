@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X, ChevronDown, LayoutDashboard, LogIn, UserCheck } from 'lucide-react';
-import { ROLES } from '../../data/constants';
+import { ROLES, getRolePortalPath } from '../../data/constants';
 import { useAuth } from '../../context/AuthContext';
 import { cx } from '../../utils/format';
 
@@ -52,7 +52,7 @@ export default function PublicNav() {
   const { user, role } = useAuth();
   const loc = useLocation();
 
-  const userRolePath = role === 'govt' ? '/government' : role ? `/${role}` : '/citizen';
+  const userRolePath = getRolePortalPath(role);
 
   useEffect(() => {
     const h = () => setScrolled(window.scrollY > 14);

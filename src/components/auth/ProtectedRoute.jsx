@@ -1,7 +1,7 @@
 import { Navigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { ShieldAlert, ArrowLeft, LayoutDashboard } from 'lucide-react';
-import { ROLES } from '../../data/constants';
+import { ROLES, getRolePortalPath } from '../../data/constants';
 
 export default function ProtectedRoute({ children, allowedRoles }) {
   const { user, profile, role, loading, isDemoMode } = useAuth();
@@ -54,7 +54,7 @@ export default function ProtectedRoute({ children, allowedRoles }) {
 
           <div className="pt-2 flex flex-col gap-2">
             <Link
-              to={role === 'govt' ? '/government' : `/${role}`}
+              to={getRolePortalPath(role)}
               className="btn btn-primary w-full justify-center"
             >
               <LayoutDashboard size={16} /> Go to My {userRoleMeta.label} Workspace

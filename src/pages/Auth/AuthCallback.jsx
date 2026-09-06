@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase, isSupabaseConfigured, fetchUserProfile } from '../../services/supabase';
+import { getRolePortalPath } from '../../data/constants';
 
 export default function AuthCallback() {
   const navigate = useNavigate();
@@ -35,7 +36,7 @@ export default function AuthCallback() {
 
         if (resolvedRole && isOnboarded) {
           // Send returning user straight to their role workspace
-          const destination = resolvedRole === 'govt' ? '/government' : `/${resolvedRole}`;
+          const destination = getRolePortalPath(resolvedRole);
           navigate(destination, { replace: true });
         } else {
           // First-time or un-onboarded user -> MUST choose role

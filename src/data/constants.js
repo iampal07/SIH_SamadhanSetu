@@ -25,6 +25,18 @@ export const ROLES = {
   ai:       { key: 'ai',       label: 'AI Engine',  color: 'varsity',  hex: '#8b5cf6', soft: '#f5f3ff', deep: '#6d28d9', grad: 'from-violet-500 to-fuchsia-500' },
 };
 
+export const ROLE_PORTAL_PATHS = {
+  citizen: '/citizen',
+  varsity: '/university',
+  industry: '/industry',
+  govt: '/government',
+};
+
+export function getRolePortalPath(role) {
+  if (!role) return '/citizen';
+  return ROLE_PORTAL_PATHS[role] || (role === 'govt' ? '/government' : role === 'varsity' ? '/university' : `/${role}`);
+}
+
 export const CATEGORIES = [
   { key: 'Water & Sanitation',  hex: '#06b6d4', icon: 'Droplets' },
   { key: 'Healthcare',          hex: '#ef4444', icon: 'HeartPulse' },

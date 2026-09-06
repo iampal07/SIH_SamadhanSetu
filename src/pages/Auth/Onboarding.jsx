@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Users, Landmark, GraduationCap, Factory, Check, Sparkles, AlertCircle } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { DISTRICT_NAMES, ROLES } from '../../data/constants';
+import { DISTRICT_NAMES, ROLES, getRolePortalPath } from '../../data/constants';
 import { UNIVERSITIES } from '../../data/universities';
 import { INDUSTRIES } from '../../data/industries';
 import { Logo } from '../../components/navigation/PublicNav';
@@ -73,7 +73,7 @@ export default function Onboarding() {
         district,
       });
 
-      const dest = selectedRole === 'govt' ? '/government' : `/${selectedRole}`;
+      const dest = getRolePortalPath(selectedRole);
       navigate(dest, { replace: true });
     } catch (err) {
       console.error(err);

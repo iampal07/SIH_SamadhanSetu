@@ -74,6 +74,10 @@ export default function App() {
           />
 
           <Route path="/dashboards" element={<Navigate to="/citizen" replace />} />
+          <Route path="/varsity/*" element={<Navigate to="/university" replace />} />
+          <Route path="/varsity" element={<Navigate to="/university" replace />} />
+          <Route path="/govt/*" element={<Navigate to="/government" replace />} />
+          <Route path="/govt" element={<Navigate to="/government" replace />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </AnimatePresence>

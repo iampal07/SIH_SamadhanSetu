@@ -6,7 +6,7 @@ import {
   GraduationCap, ArrowRight, AlertCircle, Mail, Lock, User, MapPin
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { DISTRICT_NAMES, ROLES } from '../../data/constants';
+import { DISTRICT_NAMES, ROLES, getRolePortalPath } from '../../data/constants';
 import { Logo } from '../../components/navigation/PublicNav';
 
 const ROLE_OPTIONS = [
@@ -37,7 +37,7 @@ export default function Login() {
   const redirectTo = searchParams.get('redirect');
 
   const routeUserByRole = (roleKey) => {
-    const target = redirectTo || (roleKey === 'govt' ? '/government' : `/${roleKey}`);
+    const target = redirectTo || getRolePortalPath(roleKey);
     navigate(target, { replace: true });
   };
 
