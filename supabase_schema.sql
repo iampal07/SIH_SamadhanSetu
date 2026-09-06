@@ -25,14 +25,18 @@ create table if not exists public.profiles (
   email text not null,
   full_name text,
   avatar_url text,
-  role user_role,
+  role user_role,         -- NULL until user chooses on onboarding screen
   organization_name text, -- University name, Company name, or Govt Department
   district text,          -- e.g. Ranchi, Bokaro, Dhanbad
   designation text,       -- e.g. "Associate Professor", "CSR Director", "District Officer"
   phone text,
+  is_onboarded boolean default false, -- False until role & district confirmed
   updated_at timestamp with time zone default timezone('utc'::text, now()),
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
+
+-- Ensure column exists if table was already created
+alter table public.profiles add column if not exists is_onboarded boolean default false;
 
 -- Automatic Profile Creation Trigger on Sign-Up (Google OAuth or Email/Password)
 create or replace function public.handle_new_user()
@@ -40,24 +44,26 @@ returns trigger
 language plpgsql
 security definer set search_path = public
 as $$
+declare
+  user_given_role text;
 begin
-  insert into public.profiles (id, email, full_name, avatar_url, role, district, organization_name)
+  user_given_role := new.raw_user_meta_data->>'role';
+
+  insert into public.profiles (id, email, full_name, avatar_url, role, district, organization_name, is_onboarded)
   values (
     new.id,
     new.email,
     coalesce(new.raw_user_meta_data->>'full_name', split_part(new.email, '@', 1)),
     coalesce(new.raw_user_meta_data->>'avatar_url', ''),
-    (coalesce(new.raw_user_meta_data->>'role', 'citizen'))::user_role,
+    case when user_given_role is not null then user_given_role::user_role else null end,
     coalesce(new.raw_user_meta_data->>'district', 'Ranchi'),
-    coalesce(new.raw_user_meta_data->>'organization_name', '')
+    coalesce(new.raw_user_meta_data->>'organization_name', ''),
+    case when user_given_role is not null then true else false end
   )
   on conflict (id) do update set
     email = excluded.email,
-    full_name = coalesce(excluded.full_name, profiles.full_name),
-    avatar_url = coalesce(excluded.avatar_url, profiles.avatar_url),
-    role = coalesce(excluded.role, profiles.role),
-    district = coalesce(excluded.district, profiles.district),
-    organization_name = coalesce(excluded.organization_name, profiles.organization_name),
+    full_name = coalesce(profiles.full_name, excluded.full_name),
+    avatar_url = coalesce(profiles.avatar_url, excluded.avatar_url),
     updated_at = now();
   return new;
 end;

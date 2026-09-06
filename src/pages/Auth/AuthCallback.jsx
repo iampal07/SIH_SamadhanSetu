@@ -22,15 +22,18 @@ export default function AuthCallback() {
           return;
         }
 
-        setStatus('Retrieving profile and workspace assignment...');
+        setStatus('Checking profile onboarding...');
         const profile = await fetchUserProfile(session.user.id);
 
-        if (profile?.role) {
-          // Send user straight to their role workspace
+        const isOnboarded = profile?.is_onboarded === true || 
+          (profile?.role && localStorage.getItem('samadhan_onboarded_' + session.user.id) === 'true');
+
+        if (profile?.role && isOnboarded) {
+          // Send returning user straight to their role workspace
           const destination = profile.role === 'govt' ? '/government' : `/${profile.role}`;
           navigate(destination, { replace: true });
         } else {
-          // First-time user, route to role selection
+          // First-time or un-onboarded user -> MUST choose role
           navigate('/onboarding', { replace: true });
         }
       } catch (err) {

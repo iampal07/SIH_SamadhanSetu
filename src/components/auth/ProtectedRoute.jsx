@@ -4,7 +4,7 @@ import { ShieldAlert, ArrowLeft, LayoutDashboard } from 'lucide-react';
 import { ROLES } from '../../data/constants';
 
 export default function ProtectedRoute({ children, allowedRoles }) {
-  const { user, role, loading } = useAuth();
+  const { user, profile, role, loading, isDemoMode } = useAuth();
   const location = useLocation();
 
   if (loading) {
@@ -23,8 +23,11 @@ export default function ProtectedRoute({ children, allowedRoles }) {
     return <Navigate to={`/login?redirect=${encodeURIComponent(location.pathname)}`} replace />;
   }
 
-  // If authenticated but no role chosen yet, redirect to onboarding
-  if (!role) {
+  const isOnboarded = isDemoMode || profile?.is_onboarded === true ||
+    Boolean(profile?.role && localStorage.getItem('samadhan_onboarded_' + user.id) === 'true');
+
+  // If authenticated but onboarding not completed, redirect to role onboarding
+  if (!role || !isOnboarded) {
     return <Navigate to="/onboarding" replace />;
   }
 

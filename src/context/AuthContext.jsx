@@ -143,8 +143,10 @@ export function AuthProvider({ children }) {
       organization_name: organizationName || '',
       district: district || 'Ranchi',
       phone: phone || '',
+      is_onboarded: true,
     };
 
+    localStorage.setItem('samadhan_onboarded_' + user.id, 'true');
     const saved = await saveUserProfile(profileData);
     setProfile(saved);
     return saved;
