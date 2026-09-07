@@ -88,7 +88,7 @@ export default function Onboarding() {
         <Logo />
       </header>
 
-      <main className="max-w-4xl mx-auto w-full bg-white rounded-3xl p-6 sm:p-10 shadow-xl shadow-slate-200/50 border border-slate-100">
+      <main className="max-w-4xl mx-auto w-full rounded-3xl p-6 sm:p-10 shadow-xl border" style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
         <div className="text-center max-w-xl mx-auto mb-8">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-50 text-indigo-600 text-xs font-bold mb-3">
             <Sparkles size={13} /> Complete Your Identity Setup

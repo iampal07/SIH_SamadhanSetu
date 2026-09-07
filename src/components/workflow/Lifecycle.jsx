@@ -2,8 +2,10 @@ import { motion } from 'framer-motion';
 import * as Icons from 'lucide-react';
 import { STAGES, STAGE_INDEX, ROLES, stageMeta } from '../../data/constants';
 import { cx, timeAgo } from '../../utils/format';
+import { useShell } from '../../context/AppShellContext';
 
 export function StageBadge({ status, size = 'md' }) {
+  const { t } = useShell();
   const m = stageMeta(status);
   const role = ROLES[m.owner] ?? ROLES.citizen;
   const Icon = Icons[m.icon] ?? Icons.Circle;
@@ -13,13 +15,14 @@ export function StageBadge({ status, size = 'md' }) {
       style={{ background: role.soft, color: role.deep }}
     >
       <Icon size={size === 'sm' ? 11 : 13} strokeWidth={2.4} />
-      {m.label}
+      {t(`stage.${m.key}`, m.label)}
     </span>
   );
 }
 
 /* Compact horizontal progress used on cards */
 export function LifecycleMini({ status, showLabel = true }) {
+  const { t } = useShell();
   const idx = STAGE_INDEX[status] ?? 0;
   const pct = ((idx + 1) / STAGES.length) * 100;
   const role = ROLES[stageMeta(status).owner];
@@ -32,13 +35,13 @@ export function LifecycleMini({ status, showLabel = true }) {
             className="h-1.5 flex-1 rounded-full"
             initial={{ opacity: 0.4 }}
             animate={{ opacity: 1 }}
-            style={{ background: i <= idx ? role.hex : '#e8edf5' }}
+            style={{ background: i <= idx ? role.hex : 'var(--border)' }}
           />
         ))}
       </div>
       {showLabel && (
         <div className="flex justify-between mt-1.5 text-[0.68rem] font-semibold">
-          <span style={{ color: role.deep }}>{stageMeta(status).label}</span>
+          <span style={{ color: role.deep }}>{t(`stage.${status}`, stageMeta(status).label)}</span>
           <span className="text-slate-400">{Math.round(pct)}%</span>
         </div>
       )}
@@ -48,6 +51,7 @@ export function LifecycleMini({ status, showLabel = true }) {
 
 /* Full lifecycle track with animated connector */
 export function LifecycleTrack({ status, history = [], compact = false }) {
+  const { t } = useShell();
   const idx = STAGE_INDEX[status] ?? 0;
   return (
     <div className="relative overflow-x-auto no-scrollbar pb-2">
@@ -72,8 +76,8 @@ export function LifecycleTrack({ status, history = [], compact = false }) {
                     className={cx('relative grid place-items-center rounded-full border-2 transition-all',
                       compact ? 'w-9 h-9' : 'w-11 h-11')}
                     style={{
-                      background: done || current ? role.hex : '#fff',
-                      borderColor: done || current ? role.hex : '#e2e8f0',
+                      background: done || current ? role.hex : 'var(--surface)',
+                      borderColor: done || current ? role.hex : 'var(--border-strong)',
                       color: done || current ? '#fff' : '#cbd5e1',
                       boxShadow: current ? `0 8px 22px -8px ${role.hex}` : 'none',
                     }}
@@ -84,13 +88,13 @@ export function LifecycleTrack({ status, history = [], compact = false }) {
                 <div className={cx('mt-2 text-center font-semibold leading-tight',
                   compact ? 'text-[0.62rem]' : 'text-[0.7rem]')}
                   style={{ color: done || current ? role.deep : '#94a3b8' }}>
-                  {s.label}
+                  {t(`stage.${s.key}`, s.label)}
                 </div>
                 {h && !compact && <div className="text-[0.6rem] text-slate-400 mt-0.5">{timeAgo(h.at)}</div>}
               </div>
               {i < STAGES.length - 1 && (
                 <div className={cx('rounded-full mt-5', compact ? 'w-4 h-0.5' : 'w-6 h-0.5')}
-                  style={{ background: i < idx ? ROLES[STAGES[i + 1].owner].hex : '#e2e8f0' }} />
+                  style={{ background: i < idx ? ROLES[STAGES[i + 1].owner].hex : 'var(--border-strong)' }} />
               )}
             </div>
           );
@@ -102,6 +106,7 @@ export function LifecycleTrack({ status, history = [], compact = false }) {
 
 /* Vertical timeline of what actually happened */
 export function HistoryTimeline({ history = [], updates = [] }) {
+  const { t } = useShell();
   const items = [
     ...history.map((h) => ({ kind: 'stage', ...h })),
     ...updates.map((u) => ({ kind: 'update', ...u, at: u.at })),
@@ -109,7 +114,7 @@ export function HistoryTimeline({ history = [], updates = [] }) {
 
   return (
     <div className="relative pl-6">
-      <div className="absolute left-[7px] top-2 bottom-2 w-px bg-slate-200" />
+      <div className="absolute left-[7px] top-2 bottom-2 w-px" style={{ background: 'var(--border-strong)' }} />
       {items.map((it, i) => {
         const role = ROLES[it.kind === 'stage' ? it.by : it.role] ?? ROLES.citizen;
         const m = it.kind === 'stage' ? stageMeta(it.stage) : null;
@@ -119,15 +124,15 @@ export function HistoryTimeline({ history = [], updates = [] }) {
             key={`${it.kind}-${i}`} className="relative pb-5 last:pb-0"
             initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}
           >
-            <span className="absolute -left-6 top-0.5 w-4 h-4 rounded-full grid place-items-center ring-4 ring-white"
-              style={{ background: role.hex }}>
+            <span className="absolute -left-6 top-0.5 w-4 h-4 rounded-full grid place-items-center ring-4"
+              style={{ background: role.hex, '--tw-ring-color': 'var(--surface)' }}>
               <Icon size={9} color="#fff" strokeWidth={3} />
             </span>
             <div className="text-[0.82rem] font-semibold text-slate-800">
-              {it.kind === 'stage' ? m.label : it.text}
+              {it.kind === 'stage' ? t(`stage.${it.stage}`, m.label) : it.text}
             </div>
             <div className="text-[0.72rem] text-slate-400 mt-0.5">
-              {it.kind === 'stage' ? `${role.label} · ${timeAgo(it.at)}` : `${it.by} · ${role.label} · ${timeAgo(it.at)}`}
+              {it.kind === 'stage' ? `${t(`role.${role.key}`, role.label)} · ${timeAgo(it.at)}` : `${it.by} · ${role.label} · ${timeAgo(it.at)}`}
             </div>
             {it.note && <div className="text-[0.75rem] text-slate-500 mt-1 bg-slate-50 rounded-lg px-2.5 py-1.5">{it.note}</div>}
           </motion.div>

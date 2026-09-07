@@ -5,8 +5,10 @@ import { catMeta, ROLES } from '../../data/constants';
 import { LifecycleMini, StageBadge } from '../workflow/Lifecycle';
 import { Chip } from '../shared/ui';
 import { fmtFull, priorityTone, timeAgo, cx } from '../../utils/format';
+import { useShell } from '../../context/AppShellContext';
 
 export default function ChallengeCard({ challenge: c, onOpen, actions, accent = '#4f46e5', index = 0, dense = false }) {
+  const { t } = useShell();
   const cat = catMeta(c.category);
   const CatIcon = Icons[cat.icon] ?? Icons.Circle;
   const p = c.priority ? priorityTone(c.priority.level) : null;
@@ -51,12 +53,12 @@ export default function ChallengeCard({ challenge: c, onOpen, actions, accent = 
 
       <div className="flex flex-wrap items-center gap-x-3.5 gap-y-1.5 text-[0.72rem] text-slate-500 font-medium">
         <span className="inline-flex items-center gap-1"><MapPin size={12} />{c.village}, {c.district}</span>
-        {c.affected > 0 && <span className="inline-flex items-center gap-1"><Users size={12} />{fmtFull(c.affected)} affected</span>}
+        {c.affected > 0 && <span className="inline-flex items-center gap-1"><Users size={12} />{fmtFull(c.affected)} {t('common.affected')}</span>}
         <span className="inline-flex items-center gap-1"><Icons.Clock size={12} />{timeAgo(c.createdAt)}</span>
       </div>
 
       <div className="flex items-center gap-2 flex-wrap">
-        <Chip color={cat.hex}>{c.category}</Chip>
+        <Chip color={cat.hex}>{t(`cat.${c.category}`, c.category)}</Chip>
         {c.ai && <Chip color="#8b5cf6" bg="#f5f3ff"><Sparkles size={10} />AI {c.ai.classification.confidence}%</Chip>}
         {c.university && <Chip color={ROLES.varsity.hex}>{c.university.short}</Chip>}
         {c.partners?.map((pt) => <Chip key={pt.id} color={ROLES.industry.hex}>{pt.short}</Chip>)}
@@ -69,7 +71,7 @@ export default function ChallengeCard({ challenge: c, onOpen, actions, accent = 
           <div className="flex items-center gap-2 flex-wrap">{actions}</div>
           <button className="text-[0.75rem] font-bold inline-flex items-center gap-1 opacity-70 group-hover:opacity-100 transition"
             style={{ color: accent }} onClick={() => onOpen?.(c)}>
-            Details <ArrowRight size={13} />
+            {t('common.details')} <ArrowRight size={13} />
           </button>
         </div>
       )}

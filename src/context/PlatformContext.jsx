@@ -397,12 +397,13 @@ export function useAnalytics() {
     let validated = 0, active = 0, completed = 0, beneficiaries = 0, partners = new Set(), unis = new Set(), students = 0;
     for (const c of challenges) {
       byCategory[c.category] = (byCategory[c.category] ?? 0) + 1;
-      byDistrict[c.district] = byDistrict[c.district] ?? { name: c.district, count: 0, critical: 0, projects: 0 };
+      byDistrict[c.district] = byDistrict[c.district] ?? { name: c.district, count: 0, critical: 0, projects: 0, deployed: 0, cats: {} };
+      byDistrict[c.district].cats[c.category] = (byDistrict[c.district].cats[c.category] ?? 0) + 1;
       byDistrict[c.district].count += 1;
       if (c.priority?.level === 'CRITICAL' || c.priority?.level === 'HIGH') byDistrict[c.district].critical += 1;
       if (STAGE_INDEX[c.status] >= STAGE_INDEX.validated) validated += 1;
       if (STAGE_INDEX[c.status] >= STAGE_INDEX.university_matched) { active += 1; byDistrict[c.district].projects += 1; }
-      if (STAGE_INDEX[c.status] >= STAGE_INDEX.deployment) completed += 1;
+      if (STAGE_INDEX[c.status] >= STAGE_INDEX.deployment) { completed += 1; byDistrict[c.district].deployed += 1; }
       if (c.impact) beneficiaries += c.impact.beneficiaries;
       c.partners.forEach((p) => partners.add(p.id));
       if (c.university) unis.add(c.university.id);
@@ -412,7 +413,13 @@ export function useAnalytics() {
       total: challenges.length, validated, active, completed, beneficiaries,
       partners: partners.size, universities: unis.size, students,
       byCategory: Object.entries(byCategory).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value),
-      byDistrict: Object.values(byDistrict).sort((a, b) => b.count - a.count),
+      byDistrict: Object.values(byDistrict)
+        .map((d) => ({ ...d, topCategory: Object.entries(d.cats).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null }))
+        .sort((a, b) => b.count - a.count),
+      markers: challenges.map((c) => ({
+        id: c.id, district: c.district, category: c.category, status: c.status,
+        title: c.title, deployed: STAGE_INDEX[c.status] >= STAGE_INDEX.deployment,
+      })),
       byStage: STAGES.map((s) => ({ name: s.short, key: s.key, value: challenges.filter((c) => c.status === s.key).length })),
       pending: challenges.filter((c) => c.validation.status === 'pending'),
       delayed: challenges.filter((c) => c.milestones.some((m) => m.status !== 'completed' && new Date(m.due) < new Date())),

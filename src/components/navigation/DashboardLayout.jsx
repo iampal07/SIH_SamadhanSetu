@@ -6,6 +6,8 @@ import { Bell, Menu, X, ChevronsLeft, Home, CheckCheck, LogOut } from 'lucide-re
 import { ROLES } from '../../data/constants';
 import { usePlatform, useNotifications } from '../../context/PlatformContext';
 import { useAuth } from '../../context/AuthContext';
+import { useShell } from '../../context/AppShellContext';
+import ShellControls from '../shared/ShellControls';
 import { Logo } from './PublicNav';
 import { Avatar } from '../shared/ui';
 import { timeAgo, cx } from '../../utils/format';
@@ -24,7 +26,8 @@ export default function DashboardLayout({ role, nav, title, subtitle, user, chil
   const [collapsed, setCollapsed] = useState(false);
   const { dispatch } = usePlatform();
   const { list, unread } = useNotifications(role);
-  const { profile, logout } = useAuth();
+  const { profile, logout, isDemoMode, loginAsDemoRole } = useAuth();
+  const { t } = useShell();
   const navigate = useNavigate();
   const loc = useLocation();
 
@@ -34,7 +37,8 @@ export default function DashboardLayout({ role, nav, title, subtitle, user, chil
   };
 
   const Sidebar = (
-    <div className={cx('flex flex-col h-full bg-white border-r border-slate-100 transition-all duration-300', collapsed ? 'w-[74px]' : 'w-[248px]')}>
+    <div className={cx('flex flex-col h-full border-r transition-all duration-300', collapsed ? 'w-[74px]' : 'w-[248px]')}
+      style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
       <div className="p-4 pb-3 flex items-center justify-between">
         {!collapsed ? <Logo /> : (
           <div className="w-9 h-9 rounded-xl grid place-items-center text-white mx-auto"
@@ -44,11 +48,11 @@ export default function DashboardLayout({ role, nav, title, subtitle, user, chil
 
       <div className={cx('mx-3 mb-3 rounded-xl px-3 py-2.5', collapsed && 'px-2')} style={{ background: r.soft }}>
         {collapsed ? (
-          <div className="grid place-items-center text-[0.7rem] font-extrabold" style={{ color: r.deep }}>{r.label[0]}</div>
+          <div className="grid place-items-center text-[0.7rem] font-extrabold" style={{ color: r.deep }}>{t(`role.${role}`, r.label)[0]}</div>
         ) : (
           <>
-            <p className="text-[0.62rem] font-bold uppercase tracking-widest" style={{ color: r.hex }}>Workspace</p>
-            <p className="font-display font-extrabold text-[0.95rem]" style={{ color: r.deep }}>{r.label}</p>
+            <p className="text-[0.62rem] font-bold uppercase tracking-widest" style={{ color: r.hex }}>{t('nav.switchWorkspace', 'Workspace')}</p>
+            <p className="font-display font-extrabold text-[0.95rem]" style={{ color: r.deep }}>{t(`role.${role}`, r.label)}</p>
           </>
         )}
       </div>
@@ -68,7 +72,7 @@ export default function DashboardLayout({ role, nav, title, subtitle, user, chil
                       transition={{ type: 'spring', stiffness: 400, damping: 34 }} />
                   )}
                   <Icon size={17} className="relative z-10 shrink-0" strokeWidth={2.2} />
-                  {!collapsed && <span className="relative z-10 truncate">{n.label}</span>}
+                  {!collapsed && <span className="relative z-10 truncate">{n.key ? t(n.key, n.label) : n.label}</span>}
                   {!collapsed && n.badge > 0 && (
                     <span className={cx('relative z-10 ml-auto text-[0.65rem] font-bold px-1.5 py-0.5 rounded-full',
                       isActive ? 'bg-white/25 text-white' : 'bg-slate-100 text-slate-500')}>{n.badge}</span>
@@ -80,30 +84,31 @@ export default function DashboardLayout({ role, nav, title, subtitle, user, chil
         })}
       </nav>
 
-      <div className="p-3 border-t border-slate-100 space-y-1">
-        {!collapsed && <p className="text-[0.6rem] font-bold uppercase tracking-widest text-slate-300 px-2 pb-1">Switch workspace</p>}
+      <div className="p-3 border-t space-y-1" style={{ borderColor: 'var(--border)' }}>
+        {!collapsed && <p className="text-[0.6rem] font-bold uppercase tracking-widest text-slate-300 px-2 pb-1">{t('nav.switchWorkspace')}</p>}
         <div className={cx('flex gap-1.5', collapsed && 'flex-col items-center')}>
           {SWITCH.filter((s) => s.role !== role).map((s) => (
             <Link key={s.to} to={s.to} title={ROLES[s.role].label}
+              onClick={() => { if (isDemoMode) loginAsDemoRole(s.role); }}
               className="flex-1 grid place-items-center h-8 rounded-lg text-[0.68rem] font-bold transition hover:scale-105"
               style={{ background: ROLES[s.role].soft, color: ROLES[s.role].deep }}>
-              {collapsed ? ROLES[s.role].label[0] : ROLES[s.role].label}
+              {collapsed ? ROLES[s.role].label[0] : t(`role.${s.role}`, ROLES[s.role].label)}
             </Link>
           ))}
         </div>
         <Link to="/" className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-[0.8rem] font-semibold text-slate-400 hover:text-slate-700 hover:bg-slate-50 transition mt-1">
-          <Home size={16} />{!collapsed && 'Back to homepage'}
+          <Home size={16} />{!collapsed && t('nav.backHome')}
         </Link>
         <button onClick={() => setCollapsed((c) => !c)}
           className="hidden lg:flex items-center gap-2.5 px-3 py-2 rounded-xl text-[0.8rem] font-semibold text-slate-400 hover:text-slate-700 hover:bg-slate-50 transition w-full">
-          <ChevronsLeft size={16} className={cx('transition', collapsed && 'rotate-180')} />{!collapsed && 'Collapse'}
+          <ChevronsLeft size={16} className={cx('transition', collapsed && 'rotate-180')} />{!collapsed && t('nav.collapse')}
         </button>
       </div>
     </div>
   );
 
   return (
-    <div className="min-h-screen flex bg-[#f6f8fc]">
+    <div className="min-h-screen flex" style={{ background: 'var(--bg)' }}>
       <aside className="hidden lg:block sticky top-0 h-screen shrink-0">{Sidebar}</aside>
 
       <AnimatePresence>
@@ -120,7 +125,7 @@ export default function DashboardLayout({ role, nav, title, subtitle, user, chil
       </AnimatePresence>
 
       <div className="flex-1 min-w-0">
-        <header className="sticky top-0 z-30 glass border-b border-white/60">
+        <header className="sticky top-0 z-30 glass border-b" style={{ borderColor: 'var(--border)' }}>
           <div className="flex items-center gap-3 px-4 sm:px-6 py-3">
             <button className="lg:hidden p-2 rounded-lg hover:bg-slate-100" onClick={() => setOpen(true)}><Menu size={19} /></button>
             <div className="min-w-0 flex-1">
@@ -128,6 +133,7 @@ export default function DashboardLayout({ role, nav, title, subtitle, user, chil
               {subtitle && <p className="text-[0.74rem] text-slate-500 truncate">{subtitle}</p>}
             </div>
             {headerRight}
+            <div className="hidden md:block"><ShellControls compact /></div>
             <div className="relative">
               <button className="relative p-2.5 rounded-xl hover:bg-white/70 transition" onClick={() => { setBell((b) => !b); }}>
                 <Bell size={18} className="text-slate-600" />
@@ -142,16 +148,17 @@ export default function DashboardLayout({ role, nav, title, subtitle, user, chil
                   <>
                     <div className="fixed inset-0 z-0" onClick={() => setBell(false)} />
                     <motion.div initial={{ opacity: 0, y: 8, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 4 }}
-                      className="absolute right-0 top-12 w-[320px] max-w-[88vw] bg-white rounded-2xl shadow-xl border border-slate-100 z-10 overflow-hidden">
-                      <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
-                        <p className="font-display font-bold text-[0.9rem]">Notifications</p>
+                      className="absolute right-0 top-12 w-[320px] max-w-[88vw] rounded-2xl shadow-xl border z-10 overflow-hidden"
+                      style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
+                      <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: 'var(--border)' }}>
+                        <p className="font-display font-bold text-[0.9rem]">{t('common.notifications')}</p>
                         <button className="text-[0.72rem] font-bold inline-flex items-center gap-1" style={{ color: r.hex }}
                           onClick={() => dispatch({ type: 'READ_NOTIFICATIONS', role })}>
-                          <CheckCheck size={13} />Mark all read
+                          <CheckCheck size={13} />{t('common.markAllRead')}
                         </button>
                       </div>
                       <div className="max-h-[360px] overflow-y-auto">
-                        {list.length === 0 && <p className="p-6 text-center text-sm text-slate-400">Nothing yet.</p>}
+                        {list.length === 0 && <p className="p-6 text-center text-sm text-slate-400">{t('common.nothingYet')}</p>}
                         {list.map((n) => (
                           <div key={n.id} className={cx('px-4 py-3 border-b border-slate-50 last:border-0 flex gap-2.5', !n.read && 'bg-slate-50/70')}>
                             <span className="w-1.5 h-1.5 rounded-full mt-1.5 shrink-0"
@@ -176,7 +183,7 @@ export default function DashboardLayout({ role, nav, title, subtitle, user, chil
               </div>
               <button
                 onClick={handleLogout}
-                title="Sign out of workspace"
+                title={t('nav.signOut')}
                 className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition ml-1"
               >
                 <LogOut size={16} />

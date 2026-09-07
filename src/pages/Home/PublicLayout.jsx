@@ -5,7 +5,7 @@ import { ROLES } from '../../data/constants';
 
 export default function PublicLayout() {
   return (
-    <div className="min-h-screen flex flex-col bg-white">
+    <div className="min-h-screen flex flex-col" style={{ background: 'var(--bg)' }}>
       <PublicNav />
       <div className="flex-1"><Outlet /></div>
       <Footer />
@@ -15,7 +15,7 @@ export default function PublicLayout() {
 
 export function Footer() {
   return (
-    <footer className="bg-slate-900 text-white pt-14 pb-8 mt-0">
+    <footer className="surface-ink pt-14 pb-8 mt-0">
       <div className="max-w-6xl mx-auto px-5 sm:px-6">
         <div className="grid gap-10 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
           <div>

@@ -12,6 +12,7 @@ import { Stat, Chip, Modal, SearchInput, Select, Empty, Counter, Bar, ScoreRing,
 import { TrendArea, CategoryDonut, HBar, VBar } from '../../components/charts/Charts';
 import JharkhandMap, { DistrictList } from '../../components/charts/JharkhandMap';
 import { usePlatform, useAnalytics } from '../../context/PlatformContext';
+import { useShell } from '../../context/AppShellContext';
 import { UNIVERSITIES } from '../../data/universities';
 import { INDUSTRIES } from '../../data/industries';
 import { TREND_DATA } from '../../data/seedChallenges';
@@ -23,19 +24,20 @@ const R = ROLES.govt;
 
 export default function GovernmentDashboard() {
   const a = useAnalytics();
+  const { t } = useShell();
 
   const nav = [
-    { to: '/government', label: 'Overview', icon: 'LayoutDashboard', end: true },
-    { to: '/government/challenges', label: 'Validation Queue', icon: 'ShieldCheck', badge: a.pending.length },
-    { to: '/government/map', label: 'District Analytics', icon: 'Map' },
-    { to: '/government/projects', label: 'Project Monitoring', icon: 'Activity', badge: a.delayed.length },
-    { to: '/government/ecosystem', label: 'Ecosystem', icon: 'Network' },
-    { to: '/government/impact', label: 'Impact & Outcomes', icon: 'TrendingUp' },
+    { to: '/government', key: 'common.overview', label: 'Overview', icon: 'LayoutDashboard', end: true },
+    { to: '/government/challenges', key: 'govt.nav.queue', label: 'Validation Queue', icon: 'ShieldCheck', badge: a.pending.length },
+    { to: '/government/map', key: 'govt.nav.map', label: 'District Analytics', icon: 'Map' },
+    { to: '/government/projects', key: 'govt.nav.projects', label: 'Project Monitoring', icon: 'Activity', badge: a.delayed.length },
+    { to: '/government/ecosystem', key: 'govt.nav.ecosystem', label: 'Ecosystem', icon: 'Network' },
+    { to: '/government/impact', key: 'govt.nav.impact', label: 'Impact & Outcomes', icon: 'TrendingUp' },
   ];
 
   return (
     <DashboardLayout role="govt" nav={nav}
-      title="District Innovation Cell" subtitle="Government of Jharkhand · Department of Higher & Technical Education"
+      title={t('govt.title')} subtitle={t('govt.sub')}
       user={{ name: 'Nodal Officer', meta: 'State Innovation Mission' }}>
       <Routes>
         <Route index element={<Overview analytics={a} />} />
@@ -53,6 +55,7 @@ export default function GovernmentDashboard() {
 /* ── Overview ───────────────────────────────────────────────────────── */
 function Overview({ analytics: a }) {
   const nav = useNavigate();
+  const { t } = useShell();
   const { challenges } = usePlatform();
   const [open, setOpen] = useState(null);
   const critical = challenges.filter((c) => c.priority && c.priority.score >= 75).slice(0, 4);
@@ -63,14 +66,14 @@ function Overview({ analytics: a }) {
         <motion.div className="absolute -right-12 -top-16 w-56 h-56 rounded-full bg-white/10 anim-float" />
         <div className="relative flex flex-col sm:flex-row gap-4 sm:items-center justify-between">
           <div>
-            <p className="text-[0.72rem] font-bold uppercase tracking-widest opacity-80">State innovation dashboard</p>
+            <p className="text-[0.72rem] font-bold uppercase tracking-widest opacity-80">{t('govt.hero.eyebrow')}</p>
             <h2 className="font-display text-2xl sm:text-3xl font-extrabold mt-1">{a.pending.length} challenges awaiting validation</h2>
             <p className="text-white/85 text-[0.9rem] mt-1.5 max-w-lg">
               Validate a challenge and the AI immediately routes it to the best-matched universities in the state.
             </p>
           </div>
           <button className="btn bg-white text-emerald-700 hover:bg-white/90 px-5 py-3 shrink-0" onClick={() => nav('/government/challenges')}>
-            <ShieldCheck size={16} />Open validation queue
+            <ShieldCheck size={16} />{t('govt.hero.cta')}
           </button>
         </div>
       </div>
@@ -136,6 +139,7 @@ function Overview({ analytics: a }) {
 /* ── Validation queue ───────────────────────────────────────────────── */
 function Queue() {
   const { challenges, dispatch, toast } = usePlatform();
+  const { t } = useShell();
   const [open, setOpen] = useState(null);
   const [validateFor, setValidateFor] = useState(null);
   const [q, setQ] = useState('');
@@ -174,11 +178,11 @@ function Queue() {
                 <ChallengeCard key={c.id} challenge={c} index={i} onOpen={setOpen} accent={R.hex}
                   actions={(
                     <>
-                      {!c.ai && <button className="btn btn-sm text-white" style={{ background: '#8b5cf6' }} onClick={() => runAI(c)}><Sparkles size={13} />Run AI</button>}
+                      {!c.ai && <button className="btn btn-sm text-white" style={{ background: '#8b5cf6' }} onClick={() => runAI(c)}><Sparkles size={13} />{t('govt.runAI')}</button>}
                       {c.ai && c.validation.status === 'pending' && (
                         <>
-                          <button className="btn btn-sm text-white" style={{ background: R.hex }} onClick={() => setValidateFor(c)}><ShieldCheck size={13} />Validate</button>
-                          <button className="btn btn-ghost btn-sm" onClick={() => { dispatch({ type: 'REJECT_CHALLENGE', id: c.id }); toast(`${c.code} marked as duplicate`, 'warn'); }}><X size={13} />Reject</button>
+                          <button className="btn btn-sm text-white" style={{ background: R.hex }} onClick={() => setValidateFor(c)}><ShieldCheck size={13} />{t('common.validate')}</button>
+                          <button className="btn btn-ghost btn-sm" onClick={() => { dispatch({ type: 'REJECT_CHALLENGE', id: c.id }); toast(`${c.code} marked as duplicate`, 'warn'); }}><X size={13} />{t('common.reject')}</button>
                         </>
                       )}
                       {c.validation.status === 'validated' && <Chip color={R.deep} bg={R.soft}>Validated</Chip>}
@@ -246,7 +250,7 @@ function ValidateModal({ challenge, onClose }) {
           </div>
           <div className="flex justify-end gap-2">
             <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
-            <button className="btn btn-primary" onClick={submit}><ShieldCheck size={15} />Validate & route to universities</button>
+            <button className="btn btn-primary" onClick={submit}><ShieldCheck size={15} />{t('govt.validateRoute')}</button>
           </div>
         </div>
       )}
@@ -257,6 +261,7 @@ function ValidateModal({ challenge, onClose }) {
 /* ── District analytics ─────────────────────────────────────────────── */
 function MapAnalytics({ analytics: a }) {
   const { challenges } = usePlatform();
+  const { t } = useShell();
   const [sel, setSel] = useState(null);
   const [metric, setMetric] = useState('count');
   const [open, setOpen] = useState(null);
@@ -265,23 +270,23 @@ function MapAnalytics({ analytics: a }) {
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Stat icon={Icons.MapPinned} label="Districts reporting" value={a.byDistrict.length} color={R.hex} />
-        <Stat icon={Icons.AlertTriangle} label="High priority challenges" value={a.byDistrict.reduce((s, d) => s + d.critical, 0)} color="#dc2626" delay={0.08} />
-        <Stat icon={Icons.Activity} label="Districts with active projects" value={a.byDistrict.filter((d) => d.projects > 0).length} color="#6366f1" delay={0.16} />
-        <Stat icon={Icons.Layers} label="Domains active" value={a.byCategory.length} color="#0891b2" delay={0.24} />
+        <Stat icon={Icons.MapPinned} label={t('map.stat.districts')} value={a.byDistrict.length} color={R.hex} />
+        <Stat icon={Icons.AlertTriangle} label={t('map.stat.critical')} value={a.byDistrict.reduce((s, d) => s + d.critical, 0)} color="#dc2626" delay={0.08} />
+        <Stat icon={Icons.Activity} label={t('map.stat.activeDistricts')} value={a.byDistrict.filter((d) => d.projects > 0).length} color="#6366f1" delay={0.16} />
+        <Stat icon={Icons.Layers} label={t('map.stat.domains')} value={a.byCategory.length} color="#0891b2" delay={0.24} />
       </div>
 
       <div className="grid lg:grid-cols-[1.25fr_1fr] gap-4">
         <div className="card p-5">
           <div className="flex items-center justify-between flex-wrap gap-2 mb-1">
             <div>
-              <p className="font-display font-bold text-slate-900">Jharkhand district map</p>
-              <p className="text-[0.76rem] text-slate-400">Click a district to filter challenges</p>
+              <p className="font-display font-bold text-slate-900">{t('map.title')}</p>
+              <p className="text-[0.76rem] text-slate-400">{t('map.sub')}</p>
             </div>
             <Select value={metric} onChange={setMetric} className="w-auto"
-              options={[{ value: 'count', label: 'Total challenges' }, { value: 'critical', label: 'High priority' }, { value: 'projects', label: 'Active projects' }]} />
+              options={[{ value: 'count', label: t('map.metric.count') }, { value: 'critical', label: t('map.metric.critical') }, { value: 'projects', label: t('map.metric.projects') }]} />
           </div>
-          <JharkhandMap data={a.byDistrict} selected={sel} onSelect={setSel} metric={metric} height={400} />
+          <JharkhandMap data={a.byDistrict} markers={a.markers} selected={sel} onSelect={setSel} metric={metric} height={420} />
         </div>
         <div className="space-y-4">
           <div className="card p-5">

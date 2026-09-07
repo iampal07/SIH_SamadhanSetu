@@ -5,12 +5,12 @@ import {
 } from 'recharts';
 import { catMeta } from '../../data/constants';
 
-const AXIS = { fontSize: 11, fill: '#94a3b8', fontWeight: 600 };
+const AXIS = { fontSize: 11, fill: 'var(--muted)', fontWeight: 600 };
 
 function TipBox({ active, payload, label, suffix = '' }) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="rounded-xl bg-white shadow-lg border border-slate-100 px-3 py-2">
+    <div className="rounded-xl card px-3 py-2">
       {label != null && <p className="text-[0.72rem] font-bold text-slate-700 mb-1">{label}</p>}
       {payload.map((p) => (
         <p key={p.dataKey ?? p.name} className="text-[0.72rem] font-semibold flex items-center gap-1.5" style={{ color: p.color ?? p.payload?.fill }}>
@@ -39,7 +39,7 @@ export function TrendArea({ data, keys = [
             </linearGradient>
           ))}
         </defs>
-        <CartesianGrid strokeDasharray="4 4" stroke="#eef2f7" vertical={false} />
+        <CartesianGrid strokeDasharray="4 4" stroke="var(--border)" vertical={false} />
         <XAxis dataKey="month" tick={AXIS} axisLine={false} tickLine={false} />
         <YAxis tick={AXIS} axisLine={false} tickLine={false} width={44} />
         <Tooltip content={<TipBox />} />
@@ -73,10 +73,10 @@ export function HBar({ data, color = '#6366f1', height = 260, dataKey = 'count',
   return (
     <ResponsiveContainer width="100%" height={height}>
       <BarChart data={data} layout="vertical" margin={{ top: 4, right: 16, left: 8, bottom: 0 }}>
-        <CartesianGrid strokeDasharray="4 4" stroke="#eef2f7" horizontal={false} />
+        <CartesianGrid strokeDasharray="4 4" stroke="var(--border)" horizontal={false} />
         <XAxis type="number" tick={AXIS} axisLine={false} tickLine={false} />
         <YAxis type="category" dataKey={nameKey} tick={AXIS} axisLine={false} tickLine={false} width={96} />
-        <Tooltip content={<TipBox />} cursor={{ fill: '#f8fafc' }} />
+        <Tooltip content={<TipBox />} cursor={{ fill: 'var(--surface-2)' }} />
         <RBar dataKey={dataKey} radius={[0, 7, 7, 0]} animationDuration={1000} barSize={14}>
           {data.map((d, i) => <Cell key={d[nameKey] ?? i} fill={colorFn ? colorFn(d) : color} />)}
         </RBar>
@@ -89,10 +89,10 @@ export function VBar({ data, color = '#6366f1', height = 220, dataKey = 'value',
   return (
     <ResponsiveContainer width="100%" height={height}>
       <BarChart data={data} margin={{ top: 6, right: 6, left: -22, bottom: 0 }}>
-        <CartesianGrid strokeDasharray="4 4" stroke="#eef2f7" vertical={false} />
+        <CartesianGrid strokeDasharray="4 4" stroke="var(--border)" vertical={false} />
         <XAxis dataKey={nameKey} tick={{ ...AXIS, fontSize: 9.5 }} axisLine={false} tickLine={false} interval={0} angle={-30} textAnchor="end" height={54} />
         <YAxis tick={AXIS} axisLine={false} tickLine={false} width={40} allowDecimals={false} />
-        <Tooltip content={<TipBox />} cursor={{ fill: '#f8fafc' }} />
+        <Tooltip content={<TipBox />} cursor={{ fill: 'var(--surface-2)' }} />
         <RBar dataKey={dataKey} radius={[7, 7, 0, 0]} fill={color} animationDuration={1000} barSize={22} />
       </BarChart>
     </ResponsiveContainer>
@@ -103,7 +103,7 @@ export function FitRadar({ data, color = '#6366f1', height = 230 }) {
   return (
     <ResponsiveContainer width="100%" height={height}>
       <RadarChart data={data} outerRadius="72%">
-        <PolarGrid stroke="#e8edf5" />
+        <PolarGrid stroke="var(--border)" />
         <PolarAngleAxis dataKey="axis" tick={{ ...AXIS, fontSize: 10 }} />
         <Radar dataKey="value" stroke={color} fill={color} fillOpacity={0.22} strokeWidth={2} animationDuration={1100} />
         <Tooltip content={<TipBox suffix="%" />} />

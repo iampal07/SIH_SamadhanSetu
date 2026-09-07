@@ -5,17 +5,20 @@ import './index.css';
 import App from './App.jsx';
 import { PlatformProvider } from './context/PlatformContext.jsx';
 import { AuthProvider } from './context/AuthContext.jsx';
+import { AppShellProvider } from './context/AppShellContext.jsx';
 import ScrollToTop from './components/shared/ScrollToTop.jsx';
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <BrowserRouter>
-      <AuthProvider>
-        <PlatformProvider>
+      <AppShellProvider>
+        <AuthProvider>
+          <PlatformProvider>
           <ScrollToTop />
           <App />
-        </PlatformProvider>
-      </AuthProvider>
+          </PlatformProvider>
+        </AuthProvider>
+      </AppShellProvider>
     </BrowserRouter>
   </StrictMode>,
 );

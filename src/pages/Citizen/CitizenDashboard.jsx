@@ -13,6 +13,7 @@ import { LifecycleTrack } from '../../components/workflow/Lifecycle';
 import { Stat, Counter, Chip, Modal, SearchInput, Select, Empty, Tabs, ScoreRing, Reveal } from '../../components/shared/ui';
 import { CategoryDonut } from '../../components/charts/Charts';
 import { usePlatform, useAnalytics } from '../../context/PlatformContext';
+import { useShell } from '../../context/AppShellContext';
 import { useAuth } from '../../context/AuthContext';
 import { uploadFileToSupabase, insertChallengeInDb } from '../../services/db';
 import { CATEGORY_KEYS, DISTRICT_NAMES, ROLES, STAGE_INDEX, catMeta } from '../../data/constants';
@@ -21,23 +22,24 @@ import { fmtFull, timeAgo, cx } from '../../utils/format';
 const R = ROLES.citizen;
 
 const NAV = [
-  { to: '/citizen', label: 'Overview', icon: 'LayoutDashboard', end: true },
-  { to: '/citizen/submit', label: 'Submit Challenge', icon: 'PlusCircle' },
-  { to: '/citizen/challenges', label: 'My Challenges', icon: 'FolderKanban' },
-  { to: '/citizen/community', label: 'Community Feed', icon: 'Globe2' },
-  { to: '/citizen/impact', label: 'Impact', icon: 'TrendingUp' },
+  { to: '/citizen', key: 'common.overview', label: 'Overview', icon: 'LayoutDashboard', end: true },
+  { to: '/citizen/submit', key: 'citizen.nav.submit', label: 'Submit Challenge', icon: 'PlusCircle' },
+  { to: '/citizen/challenges', key: 'citizen.nav.mine', label: 'My Challenges', icon: 'FolderKanban' },
+  { to: '/citizen/community', key: 'citizen.nav.community', label: 'Community Feed', icon: 'Globe2' },
+  { to: '/citizen/impact', key: 'common.impact', label: 'Impact', icon: 'TrendingUp' },
 ];
 
 export default function CitizenDashboard() {
   const { challenges } = usePlatform();
+  const { t } = useShell();
   const mine = useMemo(() => challenges.filter((c) => c.isMine || c.citizen.id === 'cit-me'), [challenges]);
 
   const nav = NAV.map((n) => (n.to === '/citizen/challenges' ? { ...n, badge: mine.length } : n));
 
   return (
     <DashboardLayout role="citizen" nav={nav}
-      title="Citizen Workspace"
-      subtitle="Report problems in your community and follow them until they are solved"
+      title={t('citizen.workspace')}
+      subtitle={t('citizen.workspace.sub')}
       user={{ name: 'Pooja Kachhap', meta: 'Kanke, Ranchi' }}>
       <Routes>
         <Route index element={<Overview mine={mine} />} />
@@ -54,6 +56,7 @@ export default function CitizenDashboard() {
 /* ── Overview ───────────────────────────────────────────────────────── */
 function Overview({ mine }) {
   const { challenges } = usePlatform();
+  const { t } = useShell();
   const a = useAnalytics();
   const nav = useNavigate();
   const [open, setOpen] = useState(null);
@@ -67,38 +70,37 @@ function Overview({ mine }) {
         <motion.div className="absolute -right-10 -top-14 w-52 h-52 rounded-full bg-white/10 anim-float" />
         <div className="relative flex flex-col sm:flex-row sm:items-center gap-4 justify-between">
           <div>
-            <p className="text-[0.72rem] font-bold uppercase tracking-widest opacity-80">Welcome back</p>
-            <h2 className="font-display text-2xl sm:text-3xl font-extrabold mt-1">Your voice starts the whole chain.</h2>
+            <p className="text-[0.72rem] font-bold uppercase tracking-widest opacity-80">{t('citizen.welcome')}</p>
+            <h2 className="font-display text-2xl sm:text-3xl font-extrabold mt-1">{t('citizen.hero.title')}</h2>
             <p className="text-white/85 text-[0.9rem] mt-1.5 max-w-lg">
-              Report a problem in two minutes. AI classifies it, government validates it, a university builds the solution
-              and an industry partner deploys it — you see every step.
+              {t('citizen.hero.sub')}
             </p>
           </div>
           <button className="btn bg-white text-cyan-700 hover:bg-white/90 px-5 py-3 shrink-0" onClick={() => nav('/citizen/submit')}>
-            <Send size={16} />Submit a Challenge
+            <Send size={16} />{t('nav.submitChallenge')}
           </button>
         </div>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Stat icon={Icons.FileText} label="My challenges" value={mine.length} color={R.hex} />
-        <Stat icon={Icons.ShieldCheck} label="Validated by government" value={mine.filter((c) => c.validation.status === 'validated').length} color="#10b981" delay={0.08} />
-        <Stat icon={Icons.GraduationCap} label="University assigned" value={mine.filter((c) => c.university).length} color="#6366f1" delay={0.16} />
-        <Stat icon={Icons.Users} label="Community endorsements" value={mine.reduce((s, c) => s + c.upvotes, 0)} color="#f59e0b" delay={0.24} />
+        <Stat icon={Icons.FileText} label={t('citizen.stat.mine')} value={mine.length} color={R.hex} />
+        <Stat icon={Icons.ShieldCheck} label={t('citizen.stat.validated')} value={mine.filter((c) => c.validation.status === 'validated').length} color="#10b981" delay={0.08} />
+        <Stat icon={Icons.GraduationCap} label={t('citizen.stat.assigned')} value={mine.filter((c) => c.university).length} color="#6366f1" delay={0.16} />
+        <Stat icon={Icons.Users} label={t('citizen.stat.endorsements')} value={mine.reduce((s, c) => s + c.upvotes, 0)} color="#f59e0b" delay={0.24} />
       </div>
 
       <div className="grid lg:grid-cols-[1.4fr_1fr] gap-4">
         <div className="card p-5">
           <div className="flex items-center justify-between mb-3">
             <div>
-              <p className="font-display font-bold text-slate-900">Track your challenges</p>
-              <p className="text-[0.76rem] text-slate-400">Live status across the twelve-stage lifecycle</p>
+              <p className="font-display font-bold text-slate-900">{t('citizen.track.title')}</p>
+              <p className="text-[0.76rem] text-slate-400">{t('citizen.track.sub')}</p>
             </div>
-            <button className="btn btn-ghost btn-sm" onClick={() => nav('/citizen/challenges')}>View all</button>
+            <button className="btn btn-ghost btn-sm" onClick={() => nav('/citizen/challenges')}>{t('common.viewAll')}</button>
           </div>
           {tracked.length === 0 ? (
-            <Empty icon={Icons.Inbox} title="No challenges yet"
-              sub="Submit your first community problem and watch it travel through the ecosystem."
+            <Empty icon={Icons.Inbox} title={t('citizen.empty.title')}
+              sub={t('citizen.empty.sub')}
               action={<button className="btn btn-primary" onClick={() => nav('/citizen/submit')}><Send size={15} />Submit a Challenge</button>} />
           ) : (
             <div className="space-y-4">
@@ -150,6 +152,7 @@ function Overview({ mine }) {
 /* ── Submit ─────────────────────────────────────────────────────────── */
 function Submit() {
   const { dispatch, challenges } = usePlatform();
+  const { t } = useShell();
   const { user, profile } = useAuth();
   const nav = useNavigate();
   const [form, setForm] = useState({ title: '', description: '', category: '', district: profile?.district || 'Ranchi', village: '', affected: '' });
@@ -166,9 +169,9 @@ function Submit() {
   const submit = async (e) => {
     e.preventDefault();
     const er = {};
-    if (form.title.trim().length < 10) er.title = 'Give a clear title of at least 10 characters';
-    if (form.description.trim().length < 40) er.description = 'Describe the problem in at least 40 characters so the AI can classify it accurately';
-    if (!form.village.trim()) er.village = 'Village / locality is required';
+    if (form.title.trim().length < 10) er.title = t('citizen.form.err.title');
+    if (form.description.trim().length < 40) er.description = t('citizen.form.err.desc');
+    if (!form.village.trim()) er.village = t('citizen.form.err.village');
     setErr(er);
     if (Object.keys(er).length) return;
 
@@ -215,21 +218,21 @@ function Submit() {
           <motion.form key="form" onSubmit={submit} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }}
             className="space-y-5">
             <div className="rounded-2xl p-5 text-white" style={{ background: `linear-gradient(120deg,${R.hex},#0369a1)` }}>
-              <h2 className="font-display text-xl font-extrabold">Report a community challenge</h2>
+              <h2 className="font-display text-xl font-extrabold">{t('citizen.form.title')}</h2>
               <p className="text-white/85 text-[0.86rem] mt-1">
-                Be specific — the AI uses your words to classify the domain, score priority and find the right university.
+                {t('citizen.form.sub')}
               </p>
             </div>
 
             <div className="card p-5 space-y-4">
               <div>
-                <label className="label">Challenge title *</label>
+                <label className="label">{t('citizen.form.titleLabel')} *</label>
                 <input className={cx('field', err.title && 'border-rose-300')} value={form.title} onChange={set('title')}
                   placeholder="e.g. Severe drinking water shortage in Barkagaon hamlet" />
                 {err.title && <p className="text-[0.72rem] text-rose-600 mt-1">{err.title}</p>}
               </div>
               <div>
-                <label className="label">Detailed description *</label>
+                <label className="label">{t('citizen.form.descLabel')} *</label>
                 <textarea rows={5} className={cx('field resize-none', err.description && 'border-rose-300')}
                   value={form.description} onChange={set('description')}
                   placeholder="What is the problem, how long has it existed, who is affected and what have you already tried?" />
@@ -240,21 +243,21 @@ function Submit() {
               </div>
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="label">Category <span className="font-normal text-slate-400">(AI will verify)</span></label>
+                  <label className="label">{t('citizen.form.catLabel')} <span className="font-normal text-slate-400">({t('citizen.form.catHint')})</span></label>
                   <Select value={form.category} onChange={(v) => setForm((f) => ({ ...f, category: v }))}
-                    options={[{ value: '', label: 'Let AI decide' }, ...CATEGORY_KEYS.map((c) => ({ value: c, label: c }))]} />
+                    options={[{ value: '', label: t('citizen.form.autoCat') }, ...CATEGORY_KEYS.map((c) => ({ value: c, label: c }))]} />
                 </div>
                 <div>
-                  <label className="label">District *</label>
+                  <label className="label">{t('common.district')} *</label>
                   <Select value={form.district} onChange={(v) => setForm((f) => ({ ...f, district: v }))} options={DISTRICT_NAMES} />
                 </div>
                 <div>
-                  <label className="label">Village / locality *</label>
+                  <label className="label">{t('citizen.form.villageLabel')} *</label>
                   <input className={cx('field', err.village && 'border-rose-300')} value={form.village} onChange={set('village')} placeholder="e.g. Kanke School Road" />
                   {err.village && <p className="text-[0.72rem] text-rose-600 mt-1">{err.village}</p>}
                 </div>
                 <div>
-                  <label className="label">Approx. people affected</label>
+                  <label className="label">{t('citizen.form.affectedLabel')}</label>
                   <input className="field" type="number" min="0" value={form.affected} onChange={set('affected')} placeholder="e.g. 2400" />
                 </div>
               </div>
@@ -268,7 +271,7 @@ function Submit() {
                       setFileObjects((prev) => [...prev, ...chosen]);
                     }} />
                   <Upload size={22} className="mx-auto text-slate-300 mb-1.5" />
-                  <p className="text-[0.82rem] font-semibold text-slate-600">Click to attach photos or documents</p>
+                  <p className="text-[0.82rem] font-semibold text-slate-600">{t('citizen.form.filesCta')}</p>
                   <p className="text-[0.7rem] text-slate-400 mt-0.5">Uploaded files are securely saved to your Supabase Storage bucket</p>
                 </label>
                 {fileObjects.length > 0 && (
@@ -284,7 +287,7 @@ function Submit() {
               </div>
 
               <div className="pt-2 flex justify-end gap-2">
-                <button type="button" className="btn btn-ghost" onClick={() => nav('/citizen')}>Cancel</button>
+                <button type="button" className="btn btn-ghost" onClick={() => nav('/citizen')}>{t('common.cancel')}</button>
                 <button type="submit" disabled={uploading} className="btn btn-primary px-5">
                   <Sparkles size={16} /> {uploading ? 'Uploading to Supabase...' : 'Submit & run AI analysis'}
                 </button>

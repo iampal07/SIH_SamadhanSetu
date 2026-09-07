@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import * as Icons from 'lucide-react';
 import { MapPin, Users, Paperclip, Send, CheckCircle2, Circle, Clock } from 'lucide-react';
 import { usePlatform } from '../../context/PlatformContext';
+import { useShell } from '../../context/AppShellContext';
 import { catMeta, ROLES, STAGE_INDEX } from '../../data/constants';
 import { Modal, Tabs, Chip, Bar, ScoreRing, Avatar, Counter, Empty } from './ui';
 import { AIClassification, AIPriority, AIDuplicates, MatchList, DisciplineWeb } from './AIPanel';
@@ -11,21 +12,22 @@ import { fmtFull, fmtDate, timeAgo, priorityTone, cx } from '../../utils/format'
 
 export default function ChallengeDetail({ challenge, open, onClose, role = 'citizen', actions }) {
   const { dispatch } = usePlatform();
+  const { t } = useShell();
   const [tab, setTab] = useState('overview');
   const [msg, setMsg] = useState('');
   const accent = ROLES[role]?.hex ?? '#4f46e5';
 
   const tabs = useMemo(() => {
-    const t = [{ key: 'overview', label: 'Overview' }];
-    if (challenge?.ai) t.push({ key: 'ai', label: 'AI Insights' });
-    if (challenge?.team) t.push({ key: 'team', label: 'Team' });
-    if (challenge?.proposal) t.push({ key: 'project', label: 'Project & Milestones' });
-    if (challenge?.partners?.length) t.push({ key: 'partners', label: 'Partners' });
-    if (challenge?.impact) t.push({ key: 'impact', label: 'Impact' });
-    t.push({ key: 'timeline', label: 'Timeline' });
-    t.push({ key: 'discussion', label: 'Discussion' });
-    return t;
-  }, [challenge]);
+    const tabsList = [{ key: 'overview', label: t('common.overview') }];
+    if (challenge?.ai) tabsList.push({ key: 'ai', label: t('common.aiInsights') });
+    if (challenge?.team) tabsList.push({ key: 'team', label: t('common.team') });
+    if (challenge?.proposal) tabsList.push({ key: 'project', label: t('common.milestones') });
+    if (challenge?.partners?.length) tabsList.push({ key: 'partners', label: t('common.partners') });
+    if (challenge?.impact) tabsList.push({ key: 'impact', label: t('common.impact') });
+    tabsList.push({ key: 'timeline', label: t('common.timeline') });
+    tabsList.push({ key: 'discussion', label: t('common.discussion') });
+    return tabsList;
+  }, [challenge, t]);
 
   if (!challenge) return null;
   const c = challenge;
@@ -50,7 +52,7 @@ export default function ChallengeDetail({ challenge, open, onClose, role = 'citi
       subtitle={`${c.code} · ${c.village}, ${c.district} · submitted ${timeAgo(c.createdAt)} by ${c.citizen.name}`}>
       <div className="space-y-4">
         <div className="flex flex-wrap items-center gap-2">
-          <Chip color={cat.hex}><CatIcon size={11} />{c.category}</Chip>
+          <Chip color={cat.hex}><CatIcon size={11} />{t(`cat.${c.category}`, c.category)}</Chip>
           {p && <span className="chip" style={{ background: p.bg, color: p.fg }}>Priority {c.priority.score} · {c.priority.level}</span>}
           <StageBadge status={c.status} />
           {c.validation?.status === 'validated' && <Chip color={ROLES.govt.hex} bg={ROLES.govt.soft}><CheckCircle2 size={11} />Government validated</Chip>}
@@ -228,7 +230,7 @@ export default function ChallengeDetail({ challenge, open, onClose, role = 'citi
               <div className="flex gap-2">
                 <input className="field" placeholder="Post an update to all stakeholders…" value={msg}
                   onChange={(e) => setMsg(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && send()} />
-                <button className="btn btn-primary" onClick={send} disabled={!msg.trim()}><Send size={15} />Post</button>
+                <button className="btn btn-primary" onClick={send} disabled={!msg.trim()}><Send size={15} />{t('common.post')}</button>
               </div>
               {c.updates?.length ? (
                 <div className="space-y-2">

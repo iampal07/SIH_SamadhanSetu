@@ -37,6 +37,23 @@ Open http://localhost:5173
 
 Or open **`/simulation` → Presentation mode → Run full scenario** to drive all of the above automatically while switching dashboards.
 
+
+## What's new in this pass
+
+**Design system** — one token set (`--surface`, `--border`, `--ink`, shadows) drives both themes. Cards, buttons, fields, chips, modals, charts and the map all read from it.
+
+**Dark / light mode** — global toggle in every header (public nav, all four dashboards, simulation, login). Choice persists in `localStorage`, defaults to the OS preference. Implemented by remapping the neutral colour scale plus semantic surface tokens, so there is one design, not two.
+
+**Multilingual — English · हिंदी · खोरठा** — centralised dictionary in `src/i18n/dictionary.js`, served through `useShell().t(key, fallback)`. Covers navigation, dashboard shells, lifecycle stages, categories, forms, buttons, notifications, map and simulation copy. Missing keys fall back to English automatically, and switching language never resets page state.
+
+**Interactive district map** — real district cells (Voronoi cells derived from district centroids and clipped to the state boundary), choropleth heat by metric, pulsing hotspots for high-priority districts, category-coloured project markers, hover info card, click-to-filter, zoom and pan.
+
+**Simulation** — rebuilt as a 9-scene animated story with hand-drawn SVG actors: the citizen photographs the handpump and files the report on a phone, the AI engine extracts Problem DNA, the officer stamps VALIDATED, four disciplines converge into one team, industry sends technology/mentorship/funding across to the university, the prototype progresses Idea → Design → Prototype, the pilot runs in the village, and impact is measured. Every scene states WHO → ACTION → RESULT → NEXT. Controls: Start, Play/Pause, Next, Previous, Restart, clickable scene timeline, and keyboard (space, ← →).
+
+**Key innovations section** — Problem DNA, AI Solution Consortium, Impact & Feasibility Score, Impact Verification and District Innovation Heatmap are called out on the homepage and are live inside the dashboards.
+
+**Presentation flow** — demo login (one click per role), seamless role switching from the sidebar while in demo mode, and Presentation Mode inside the simulation that drives one real challenge through all twelve stages while the four dashboards update live.
+
 ## Architecture
 
 ```

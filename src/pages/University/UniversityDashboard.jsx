@@ -11,6 +11,7 @@ import { LifecycleTrack, StageBadge } from '../../components/workflow/Lifecycle'
 import { Stat, Chip, Modal, SearchInput, Select, Empty, Avatar, Counter, Bar, ScoreRing, Reveal, Tabs } from '../../components/shared/ui';
 import { VBar, FitRadar, CategoryDonut } from '../../components/charts/Charts';
 import { usePlatform } from '../../context/PlatformContext';
+import { useShell } from '../../context/AppShellContext';
 import { UNIVERSITIES, TALENT_POOL } from '../../data/universities';
 import { CATEGORY_KEYS, ROLES, STAGE_INDEX, STAGES, catMeta, SUPPORT_TYPES } from '../../data/constants';
 import { suggestDisciplines } from '../../services/aiEngine';
@@ -31,13 +32,13 @@ export default function UniversityDashboard() {
   const prototypes = useMemo(() => mine.filter((c) => c.prototypeData || STAGE_INDEX[c.status] >= STAGE_INDEX.prototype), [mine]);
 
   const nav = [
-    { to: '/university', label: 'Overview', icon: 'LayoutDashboard', end: true },
-    { to: '/university/challenges', label: 'Recommended', icon: 'Inbox', badge: incoming.length },
-    { to: '/university/projects', label: 'My Projects', icon: 'FolderKanban', badge: mine.length },
-    { to: '/university/showcase', label: 'Prototype Showcase', icon: 'Rocket', badge: prototypes.length },
-    { to: '/university/teams', label: 'Teams & Talent', icon: 'Users' },
-    { to: '/university/industry', label: 'Industry Support', icon: 'Handshake' },
-    { to: '/university/analytics', label: 'Analytics', icon: 'BarChart3' },
+    { to: '/university', key: 'common.overview', label: 'Overview', icon: 'LayoutDashboard', end: true },
+    { to: '/university/challenges', key: 'varsity.nav.recommended', label: 'Recommended', icon: 'Inbox', badge: incoming.length },
+    { to: '/university/projects', key: 'varsity.nav.projects', label: 'My Projects', icon: 'FolderKanban', badge: mine.length },
+    { to: '/university/showcase', key: 'varsity.nav.showcase', label: 'Prototype Showcase', icon: 'Rocket', badge: prototypes.length },
+    { to: '/university/teams', key: 'varsity.nav.teams', label: 'Teams & Talent', icon: 'Users' },
+    { to: '/university/industry', key: 'varsity.nav.industry', label: 'Industry Support', icon: 'Handshake' },
+    { to: '/university/analytics', key: 'common.analytics', label: 'Analytics', icon: 'BarChart3' },
   ];
 
   return (
@@ -72,6 +73,7 @@ function UniSwitcher() {
 /* ── Overview ───────────────────────────────────────────────────────── */
 function Overview({ uni, incoming, mine }) {
   const nav = useNavigate();
+  const { t } = useShell();
   const [open, setOpen] = useState(null);
   const active = mine.filter((c) => STAGE_INDEX[c.status] < STAGE_INDEX.deployment);
   const students = mine.reduce((s, c) => s + (c.team?.members.filter((m) => m.role === 'Student').length ?? 0), 0);
@@ -82,14 +84,14 @@ function Overview({ uni, incoming, mine }) {
         <motion.div className="absolute -right-10 -top-16 w-56 h-56 rounded-full bg-white/10 anim-float" />
         <div className="relative flex flex-col sm:flex-row gap-4 sm:items-center justify-between">
           <div>
-            <p className="text-[0.72rem] font-bold uppercase tracking-widest opacity-80">Research to society</p>
+            <p className="text-[0.72rem] font-bold uppercase tracking-widest opacity-80">{t('varsity.hero.eyebrow')}</p>
             <h2 className="font-display text-2xl sm:text-3xl font-extrabold mt-1">{incoming.length} new challenges match your expertise</h2>
             <div className="flex flex-wrap gap-1.5 mt-3">
               {uni.domains.map((d) => <span key={d} className="chip bg-white/15 text-white">{d}</span>)}
             </div>
           </div>
           <button className="btn bg-white text-indigo-700 hover:bg-white/90 px-5 py-3 shrink-0" onClick={() => nav('/university/challenges')}>
-            <Sparkles size={16} />Review recommendations
+            <Sparkles size={16} />{t('varsity.hero.cta')}
           </button>
         </div>
       </div>
@@ -172,6 +174,7 @@ function Overview({ uni, incoming, mine }) {
 /* ── Incoming recommendations ───────────────────────────────────────── */
 function Incoming({ uni, incoming }) {
   const { dispatch, toast } = usePlatform();
+  const { t } = useShell();
   const [open, setOpen] = useState(null);
   const [q, setQ] = useState('');
   const [cat, setCat] = useState('All');
@@ -201,8 +204,8 @@ function Incoming({ uni, incoming }) {
               <ChallengeCard key={c.id} challenge={c} index={i} onOpen={setOpen} accent={R.hex}
                 actions={(
                   <>
-                    <button className="btn btn-sm text-white" style={{ background: R.hex }} onClick={() => accept(c)}><Check size={13} />Accept</button>
-                    <button className="btn btn-ghost btn-sm" onClick={() => dispatch({ type: 'UNIVERSITY_DECLINE', id: c.id, universityId: uni.id })}><X size={13} />Decline</button>
+                    <button className="btn btn-sm text-white" style={{ background: R.hex }} onClick={() => accept(c)}><Check size={13} />{t('common.accept')}</button>
+                    <button className="btn btn-ghost btn-sm" onClick={() => dispatch({ type: 'UNIVERSITY_DECLINE', id: c.id, universityId: uni.id })}><X size={13} />{t('common.decline')}</button>
                   </>
                 )} />
             ))}

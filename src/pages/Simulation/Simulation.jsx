@@ -1,580 +1,867 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import * as Icons from 'lucide-react';
 import {
   Play, Pause, SkipForward, SkipBack, RotateCcw, ArrowLeft, Zap, Check, Users,
-  GraduationCap, Factory, Landmark, Sparkles, ArrowRight,
+  GraduationCap, Factory, Landmark, Sparkles, ArrowRight, Camera, Upload, Send,
+  ShieldCheck, Wrench, FlaskConical, Rocket, TrendingUp, Brain,
 } from 'lucide-react';
 import { Logo } from '../../components/navigation/PublicNav';
 import { Chip, Counter, Bar, ScoreRing, Modal } from '../../components/shared/ui';
+import ShellControls from '../../components/shared/ShellControls';
 import { usePlatform } from '../../context/PlatformContext';
+import { useShell } from '../../context/AppShellContext';
 import { ROLES } from '../../data/constants';
 import { cx } from '../../utils/format';
 
-/* ── Script of the simulation ───────────────────────────────────────── */
-const SCRIPT = [
+/* ══════════════════════════════════════════════════════════════════════
+   Scene script — 9 animated scenes, each: WHO → ACTION → RESULT → NEXT
+   ══════════════════════════════════════════════════════════════════════ */
+const SCENES = [
   {
-    id: 1, actor: 'citizen', title: 'Citizen submits the challenge',
-    caption: 'Ramesh Mahto, a farmer in Barkagaon, reports a problem from his phone in under two minutes.',
-    kind: 'submission',
+    id: 1, key: 'citizen', actor: 'citizen', dur: 7000,
+    who: 'Ramesh Mahto · Farmer, Barkagaon',
+    action: 'Takes a photo of the dry handpump and reports it from his phone',
+    result: 'Challenge CH-1042 created in under 2 minutes',
+    next: 'The platform sends it straight to the AI engine',
   },
   {
-    id: 2, actor: 'ai', title: 'AI analyses the challenge',
-    caption: 'Classification, priority scoring and duplicate detection run automatically the moment it is submitted.',
-    kind: 'ai',
+    id: 2, key: 'ai', actor: 'ai', dur: 8000,
+    who: 'SamadhanSetu AI Engine',
+    action: 'Reads the report, classifies the domain, scores priority and searches past challenges',
+    result: 'Water & Sanitation · Priority 87 HIGH · 3 similar challenges · 94% confidence',
+    next: 'Structured problem DNA goes to the district officer',
   },
   {
-    id: 3, actor: 'govt', title: 'Government validates the problem',
-    caption: 'The district innovation cell verifies it in the field and approves it for university matching.',
-    kind: 'validate',
+    id: 3, key: 'govt', actor: 'govt', dur: 6500,
+    who: 'District Innovation Cell, Hazaribagh',
+    action: 'Reviews the analysed challenge and verifies it in the field',
+    result: 'Validated ✓ — routed to the best-matched universities',
+    next: 'AI ranks universities by research fit',
   },
   {
-    id: 4, actor: 'ai', title: 'AI recommends universities',
-    caption: 'Research areas, departments, faculty expertise, past projects and proximity are ranked.',
-    kind: 'unimatch',
+    id: 4, key: 'match', actor: 'varsity', dur: 7000,
+    who: 'AI Solution Consortium',
+    action: 'Ranks universities on research area, departments, faculty expertise and proximity',
+    result: 'IIT (ISM) Dhanbad — 94% match, accepts the challenge',
+    next: 'The university assembles a multidisciplinary team',
   },
   {
-    id: 5, actor: 'varsity', title: 'University forms a multidisciplinary team',
-    caption: 'IIT (ISM) Dhanbad accepts and composes a team across four departments.',
-    kind: 'team',
+    id: 5, key: 'team', actor: 'varsity', dur: 7500,
+    who: 'IIT (ISM) Dhanbad Innovation Cell',
+    action: 'Combines four departments into one project team',
+    result: 'Civil + Environmental Science + Computer Science + IoT — 5 members',
+    next: 'The team publishes a proposal and asks for industry support',
   },
   {
-    id: 6, actor: 'varsity', title: 'University publishes the proposal',
-    caption: 'Objective, approach, budget, duration and six milestones become the public project record.',
-    kind: 'proposal',
+    id: 6, key: 'industry', actor: 'industry', dur: 7000,
+    who: 'AI Industry Matching',
+    action: 'Scores partners on domain, technology, CSR focus and funding capacity',
+    result: 'HydroSense joins — Technology + Mentorship + ₹18.5 L funding',
+    next: 'Build begins',
   },
   {
-    id: 7, actor: 'ai', title: 'AI recommends industry partners',
-    caption: 'Domain, technology stack, CSR focus and funding capacity are scored against the proposal.',
-    kind: 'indmatch',
+    id: 7, key: 'prototype', actor: 'varsity', dur: 7000,
+    who: 'Student team + Industry mentors',
+    action: 'Idea → Design → Working prototype',
+    result: 'Solar recharge unit with IoT flow sensors, built in 11 weeks',
+    next: 'Field testing with the community that raised the problem',
   },
   {
-    id: 8, actor: 'industry', title: 'Industry joins the project',
-    caption: 'HydroSense Technologies commits IoT hardware, prototyping support and ₹18.5 lakh.',
-    kind: 'partner',
+    id: 8, key: 'pilot', actor: 'govt', dur: 7000,
+    who: 'Community + Block Officer',
+    action: 'Pilot runs in Barkagaon, feedback collected, solution iterated',
+    result: 'Gram sabha approval · water quality certified · deployed to 3 hamlets',
+    next: 'Impact is measured and verified',
   },
-  { id: 9, actor: 'varsity', title: 'Prototype development', caption: 'Students build solar-powered borewell recharge units with IoT flow sensors.', kind: 'phase', metricLabel: 'Prototype build', progress: 100 },
-  { id: 10, actor: 'varsity', title: 'Testing and iteration', caption: 'Lab testing plus community feedback from the three affected hamlets.', kind: 'phase', metricLabel: 'Test cycles completed', progress: 100 },
-  { id: 11, actor: 'govt', title: 'Government and community validation', caption: 'Block officer and gram sabha jointly sign off on the pilot results.', kind: 'phase', metricLabel: 'Field pilot', progress: 100 },
-  { id: 12, actor: 'industry', title: 'Deployment', caption: 'Full deployment across all three hamlets with a maintenance plan and local training.', kind: 'phase', metricLabel: 'Deployment', progress: 100 },
-  { id: 13, actor: 'citizen', title: 'Impact measured and reported back', caption: 'Verified outcomes are published to the citizen who raised the problem and to the district dashboard.', kind: 'impact' },
+  {
+    id: 9, key: 'impact', actor: 'citizen', dur: 9000,
+    who: 'Verified social outcome',
+    action: 'Beneficiaries, savings and sustainability are measured and reported back',
+    result: '2,400 people · 42 lakh litres saved / year · 86/100 sustainability',
+    next: 'Ramesh sees the outcome of the problem he reported',
+  },
 ];
 
-const AI_ANALYSIS = {
-  category: 'Water & Sanitation', confidence: 94, priority: 87, level: 'HIGH', district: 'Hazaribagh',
-  duplicates: [
-    { title: 'Handpump running dry in Bagodar village hamlet', sim: 92 },
-    { title: 'Groundwater depletion near Chainpur', sim: 84 },
-    { title: 'Village water access in Manika block', sim: 76 },
-  ],
-  factors: [['Urgency', 91], ['Population affected', 84], ['Severity', 89], ['Geographic impact', 78], ['Feasibility', 86]],
-};
-
-const UNI_MATCHES = [
-  { name: 'IIT (ISM) Dhanbad', score: 94, why: 'Groundwater modelling + IoT sensor networks · Environmental Engineering' },
-  { name: 'Birsa Agricultural University', score: 87, why: 'Micro-irrigation research · Soil & water conservation' },
-  { name: 'BIT Mesra', score: 81, why: 'Embedded systems · Remote sensing · AI for social good' },
-];
-
-const IND_MATCHES = [
-  { name: 'HydroSense Technologies', score: 92, why: 'IoT flow sensors · LoRaWAN · Water quality analytics' },
-  { name: 'Tata Steel Foundation', score: 88, why: 'CSR: drinking water & rural livelihoods · ₹25 Cr/yr' },
-  { name: 'JR Renewables', score: 79, why: 'Solar pumping · Battery storage · Deployment capacity' },
-];
-
-const TEAM = [
-  { name: 'Dr. Anjali Mahato', dept: 'Environmental Engineering', role: 'Faculty lead' },
-  { name: 'Prof. R. K. Verma', dept: 'Civil Engineering', role: 'Faculty' },
-  { name: 'Dr. Suman Oraon', dept: 'Computer Science', role: 'Researcher · IoT' },
-  { name: 'Aditya Kumar', dept: 'Electronics', role: 'Student · LoRaWAN' },
-  { name: 'Neha Singh', dept: 'Computer Science', role: 'Student · Dashboard' },
-];
-
-const IMPACT = [
-  { label: 'People with safe water access', value: 2400, unit: '' },
-  { label: 'Water saved per year', value: 4200000, unit: ' L' },
-  { label: 'Walking distance reduced', value: 2.8, unit: ' km/day' },
-  { label: 'Waterborne illness reduction', value: 64, unit: '%' },
-  { label: 'Project duration', value: 9, unit: ' months' },
-  { label: 'Sustainability score', value: 86, unit: '/100' },
-];
-
-const ACTORS = [
+const ACTOR_RAIL = [
   { key: 'citizen', Icon: Users },
-  { key: 'govt', Icon: Landmark },
   { key: 'ai', Icon: Sparkles },
+  { key: 'govt', Icon: Landmark },
   { key: 'varsity', Icon: GraduationCap },
   { key: 'industry', Icon: Factory },
 ];
 
-export default function Simulation() {
-  const [step, setStep] = useState(0);
-  const [playing, setPlaying] = useState(false);
-  const [demoOpen, setDemoOpen] = useState(false);
-  const timer = useRef(null);
+/* ══════════════════════════════════════════════════════════════════════
+   Reusable animated figures
+   ══════════════════════════════════════════════════════════════════════ */
+function Person({ x = 0, y = 0, color = '#06b6d4', skin = '#f2c69b', scale = 1, arm = 0, label, sub }) {
+  return (
+    <g transform={`translate(${x},${y}) scale(${scale})`}>
+      {/* shadow */}
+      <ellipse cx="0" cy="62" rx="20" ry="4.5" fill="#0f172a" opacity="0.10" />
+      {/* legs */}
+      <rect x="-9" y="30" width="7.5" height="30" rx="3.5" fill="#334155" />
+      <rect x="1.5" y="30" width="7.5" height="30" rx="3.5" fill="#334155" />
+      {/* body */}
+      <path d="M-13,-2 Q0,-8 13,-2 L15,32 L-15,32 Z" fill={color} />
+      {/* arms */}
+      <motion.rect x="-19" y="0" width="6.5" height="24" rx="3.2" fill={color}
+        style={{ transformOrigin: '-16px 2px' }} animate={{ rotate: arm }} transition={{ type: 'spring', stiffness: 120, damping: 14 }} />
+      <motion.rect x="12.5" y="0" width="6.5" height="24" rx="3.2" fill={color}
+        style={{ transformOrigin: '16px 2px' }} animate={{ rotate: -arm }} transition={{ type: 'spring', stiffness: 120, damping: 14 }} />
+      {/* head */}
+      <circle cx="0" cy="-18" r="11.5" fill={skin} />
+      <path d="M-11.5,-21 Q0,-33 11.5,-21 Q6,-27 0,-26 Q-6,-27 -11.5,-21 Z" fill="#1e293b" />
+      <circle cx="-4" cy="-18" r="1.3" fill="#1e293b" />
+      <circle cx="4" cy="-18" r="1.3" fill="#1e293b" />
+      <path d="M-3.5,-13 Q0,-10.5 3.5,-13" stroke="#1e293b" strokeWidth="1.1" fill="none" strokeLinecap="round" />
+      {label && (
+        <>
+          <text x="0" y="78" textAnchor="middle" style={{ fontSize: 11, fontWeight: 800, fill: 'currentColor' }}>{label}</text>
+          {sub && <text x="0" y="90" textAnchor="middle" style={{ fontSize: 8.5, fontWeight: 600, fill: 'currentColor', opacity: 0.55 }}>{sub}</text>}
+        </>
+      )}
+    </g>
+  );
+}
 
-  const cur = SCRIPT[step];
+function Building({ x = 0, y = 0, color = '#6366f1', kind = 'university', label, scale = 1 }) {
+  return (
+    <g transform={`translate(${x},${y}) scale(${scale})`}>
+      <ellipse cx="0" cy="52" rx="42" ry="5" fill="#0f172a" opacity="0.10" />
+      {kind === 'university' && (
+        <>
+          <rect x="-38" y="-4" width="76" height="56" rx="4" fill={color} />
+          <path d="M-46,-4 L0,-34 L46,-4 Z" fill={color} opacity="0.85" />
+          <rect x="-4" y="-30" width="8" height="10" rx="2" fill="#fff" opacity="0.9" />
+          {[-26, -9, 8, 25].map((cx0) => (
+            <rect key={cx0} x={cx0} y="10" width="12" height="18" rx="2" fill="#fff" opacity="0.55" />
+          ))}
+        </>
+      )}
+      {kind === 'govt' && (
+        <>
+          <rect x="-40" y="6" width="80" height="46" rx="3" fill={color} />
+          <path d="M-46,6 L0,-26 L46,6 Z" fill={color} opacity="0.88" />
+          {[-30, -15, 0, 15, 30].map((cx0) => (
+            <rect key={cx0} x={cx0 - 4} y="14" width="8" height="30" rx="2" fill="#fff" opacity="0.5" />
+          ))}
+          <circle cx="0" cy="-30" r="4" fill="#fbbf24" />
+        </>
+      )}
+      {kind === 'industry' && (
+        <>
+          <rect x="-40" y="8" width="80" height="44" rx="3" fill={color} />
+          <path d="M-40,8 L-14,-8 L-14,8 L10,-8 L10,8 L34,-8 L34,8 Z" fill={color} opacity="0.9" />
+          <rect x="20" y="-30" width="10" height="26" rx="2" fill={color} opacity="0.75" />
+          {[-30, -12, 6, 24].map((cx0) => (
+            <rect key={cx0} x={cx0} y="20" width="11" height="14" rx="2" fill="#fff" opacity="0.5" />
+          ))}
+        </>
+      )}
+      {label && <text x="0" y="70" textAnchor="middle" style={{ fontSize: 11, fontWeight: 800, fill: 'currentColor' }}>{label}</text>}
+    </g>
+  );
+}
+
+function Phone({ x = 0, y = 0, stage = 0, scale = 1 }) {
+  return (
+    <g transform={`translate(${x},${y}) scale(${scale})`}>
+      <motion.g animate={{ y: [0, -3, 0] }} transition={{ duration: 2.4, repeat: Infinity }}>
+        <rect x="-26" y="-46" width="52" height="92" rx="9" fill="#1e293b" />
+        <rect x="-22" y="-42" width="44" height="84" rx="6" fill="#f8fafc" />
+        <AnimatePresence mode="wait">
+          {stage === 0 && (
+            <motion.g key="cam" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <rect x="-22" y="-42" width="44" height="84" rx="6" fill="#0f172a" />
+              <rect x="-18" y="-30" width="36" height="28" rx="3" fill="#38bdf8" opacity="0.35" />
+              <circle cx="0" cy="-16" r="7" fill="none" stroke="#fff" strokeWidth="1.4" />
+              <motion.circle cx="0" cy="22" r="7" fill="#fff"
+                animate={{ scale: [1, 0.82, 1] }} transition={{ duration: 1.1, repeat: Infinity }} />
+              <text x="0" y="6" textAnchor="middle" style={{ fontSize: 6, fill: '#fff', fontWeight: 700 }}>CAPTURE</text>
+            </motion.g>
+          )}
+          {stage === 1 && (
+            <motion.g key="up" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <rect x="-17" y="-34" width="34" height="22" rx="3" fill="#bae6fd" />
+              <path d="M-17,-16 L-8,-25 L-1,-19 L6,-27 L17,-16 Z" fill="#0ea5e9" />
+              <circle cx="8" cy="-29" r="3" fill="#fbbf24" />
+              <rect x="-17" y="-7" width="34" height="3.4" rx="1.7" fill="#cbd5e1" />
+              <rect x="-17" y="-0.5" width="26" height="3.4" rx="1.7" fill="#cbd5e1" />
+              <rect x="-17" y="6" width="30" height="3.4" rx="1.7" fill="#cbd5e1" />
+              <motion.rect x="-17" y="16" width="34" height="12" rx="4" fill="#06b6d4"
+                animate={{ opacity: [0.65, 1, 0.65] }} transition={{ duration: 1.2, repeat: Infinity }} />
+              <text x="0" y="24.5" textAnchor="middle" style={{ fontSize: 6, fill: '#fff', fontWeight: 800 }}>REPORT</text>
+            </motion.g>
+          )}
+          {stage >= 2 && (
+            <motion.g key="ok" initial={{ opacity: 0, scale: 0.7 }} animate={{ opacity: 1, scale: 1 }}>
+              <circle cx="0" cy="-8" r="14" fill="#10b981" />
+              <path d="M-6,-8 L-2,-3 L6.5,-13" stroke="#fff" strokeWidth="2.6" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+              <text x="0" y="18" textAnchor="middle" style={{ fontSize: 6.4, fill: '#0f172a', fontWeight: 800 }}>CH-1042</text>
+              <text x="0" y="28" textAnchor="middle" style={{ fontSize: 5.4, fill: '#64748b', fontWeight: 600 }}>Submitted</text>
+            </motion.g>
+          )}
+        </AnimatePresence>
+      </motion.g>
+    </g>
+  );
+}
+
+/** A data packet flying between two points along an arc. */
+function Packet({ from, to, delay = 0, color = '#8b5cf6', label, repeat = Infinity }) {
+  const mx = (from[0] + to[0]) / 2;
+  const my = Math.min(from[1], to[1]) - 60;
+  return (
+    <>
+      <path d={`M${from[0]},${from[1]} Q${mx},${my} ${to[0]},${to[1]}`} fill="none"
+        stroke={color} strokeWidth="1.6" strokeDasharray="5 6" opacity="0.35" />
+      <motion.g
+        initial={{ opacity: 0 }}
+        animate={{ opacity: [0, 1, 1, 0], offsetDistance: ['0%', '100%'] }}
+        transition={{ duration: 2.1, delay, repeat, repeatDelay: 0.6, ease: 'easeInOut' }}
+        style={{ offsetPath: `path("M${from[0]},${from[1]} Q${mx},${my} ${to[0]},${to[1]}")`, offsetRotate: '0deg' }}
+      >
+        <rect x="-15" y="-9" width="30" height="18" rx="5" fill={color} />
+        <text x="0" y="4" textAnchor="middle" style={{ fontSize: 8, fill: '#fff', fontWeight: 800 }}>{label ?? '⬤'}</text>
+      </motion.g>
+    </>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   Scene stages
+   ══════════════════════════════════════════════════════════════════════ */
+
+/** CSS-transition based reveal — reliable even when JS animation frames are throttled. */
+const reveal = (on, { y = 10, x = 0, scale = 1, delay = 0 } = {}) => ({
+  opacity: on ? 1 : 0,
+  transform: on ? 'translate(0,0) scale(1)' : `translate(${x}px, ${y}px) scale(${scale})`,
+  transition: `opacity .45s cubic-bezier(.22,1,.36,1) ${delay}s, transform .5s cubic-bezier(.22,1,.36,1) ${delay}s`,
+});
+
+const STAGE_VB = '0 0 900 330';
+
+function useBeat(steps, active, interval = 1500) {
+  const [beat, setBeat] = useState(0);
+  useEffect(() => {
+    setBeat(0);
+    if (!active) return undefined;
+    const id = setInterval(() => setBeat((b) => (b >= steps - 1 ? b : b + 1)), interval);
+    return () => clearInterval(id);
+  }, [steps, active, interval]);
+  return beat;
+}
+
+function SceneCitizen({ playing }) {
+  const beat = useBeat(4, playing, 1500);
+  const captions = ['Sees the problem', 'Takes a photo', 'Fills the report', 'Submitted'];
+  return (
+    <svg viewBox={STAGE_VB} className="w-full h-full text-slate-700">
+      <HandpumpScene x={170} y={188} broken />
+      <Person x={400} y={150} color={ROLES.citizen.hex} arm={beat >= 1 ? -68 : 0} label="Ramesh Mahto" sub="Barkagaon, Hazaribagh" />
+      <g style={{ opacity: beat >= 1 ? 1 : 0, transition: 'opacity .4s ease' }}>
+        <Phone x={492} y={132} stage={Math.max(0, beat - 1)} scale={0.95} />
+      </g>
+      {beat >= 3 && (
+        <g>
+          <Packet from={[520, 110]} to={[790, 150]} color={ROLES.citizen.hex} label="CH" repeat={Infinity} />
+          <g transform="translate(790,160)">
+            <rect x="-52" y="-30" width="104" height="60" rx="12" fill={ROLES.varsity.hex} opacity="0.14" />
+            <text x="0" y="-4" textAnchor="middle" style={{ fontSize: 12, fontWeight: 800, fill: 'currentColor' }}>Samadhan</text>
+            <text x="0" y="12" textAnchor="middle" style={{ fontSize: 12, fontWeight: 800, fill: 'currentColor' }}>Setu</text>
+          </g>
+        </g>
+      )}
+      <SceneCaption text={captions[beat]} />
+    </svg>
+  );
+}
+
+function HandpumpScene({ x, y, broken }) {
+  return (
+    <g transform={`translate(${x},${y})`}>
+      <ellipse cx="0" cy="46" rx="58" ry="9" fill="#0f172a" opacity="0.07" />
+      <rect x="-30" y="30" width="60" height="14" rx="4" fill="#94a3b8" />
+      <rect x="-6" y="-52" width="12" height="84" rx="3" fill="#64748b" />
+      <path d="M6,-46 L34,-40 L34,-30 L6,-36 Z" fill="#475569" />
+      <path d="M-6,-30 L-30,-22 L-30,-12 L-6,-20 Z" fill="#475569" />
+      {broken && (
+        <>
+          <motion.g animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 2, repeat: Infinity }}>
+            <circle cx="46" cy="-58" r="15" fill="#fef2f2" stroke="#ef4444" strokeWidth="1.6" />
+            <text x="46" y="-53" textAnchor="middle" style={{ fontSize: 15, fontWeight: 900, fill: '#ef4444' }}>!</text>
+          </motion.g>
+          <text x="0" y="66" textAnchor="middle" style={{ fontSize: 10, fontWeight: 700, fill: '#ef4444' }}>No water · 4 months</text>
+        </>
+      )}
+      {!broken && (
+        <>
+          <motion.path d="M-30,-14 q-4,14 -2,26" stroke="#38bdf8" strokeWidth="3.4" fill="none" strokeLinecap="round"
+            animate={{ opacity: [0.35, 1, 0.35] }} transition={{ duration: 1.1, repeat: Infinity }} />
+          <text x="0" y="66" textAnchor="middle" style={{ fontSize: 10, fontWeight: 700, fill: '#10b981' }}>Water restored</text>
+        </>
+      )}
+    </g>
+  );
+}
+
+function SceneAI({ playing }) {
+  const beat = useBeat(5, playing, 1450);
+  const outs = [
+    { label: 'Category', value: 'Water & Sanitation', color: '#06b6d4' },
+    { label: 'Priority', value: '87 / 100 · HIGH', color: '#f59e0b' },
+    { label: 'Location', value: 'Barkagaon, Hazaribagh', color: '#8b5cf6' },
+    { label: 'Similar problems', value: '3 found (92%, 84%, 76%)', color: '#ec4899' },
+  ];
+  return (
+    <div className="w-full h-full grid md:grid-cols-[1.05fr_1fr] gap-4 items-center">
+      <svg viewBox="0 0 420 300" className="w-full h-full text-slate-700">
+        <defs>
+          <radialGradient id="aiglow"><stop offset="0%" stopColor="#8b5cf6" stopOpacity="0.5" /><stop offset="100%" stopColor="#8b5cf6" stopOpacity="0" /></radialGradient>
+        </defs>
+        <circle cx="210" cy="140" r="120" fill="url(#aiglow)" />
+        {[86, 104, 122].map((r, i) => (
+          <motion.circle key={r} cx="210" cy="140" r={r} fill="none" stroke="#a78bfa" strokeWidth="1" strokeDasharray="4 6"
+            animate={{ rotate: i % 2 ? -360 : 360 }} transition={{ duration: 22 + i * 6, repeat: Infinity, ease: 'linear' }}
+            style={{ transformOrigin: '210px 140px' }} opacity={0.5} />
+        ))}
+        {/* incoming report */}
+        <motion.g animate={{ x: beat >= 1 ? 120 : 0, opacity: beat >= 2 ? 0 : 1, scale: beat >= 1 ? 0.7 : 1 }}
+          transition={{ duration: 0.9 }} style={{ transformOrigin: '46px 140px' }}>
+          <rect x="10" y="108" width="72" height="64" rx="8" fill="#fff" stroke="#cbd5e1" />
+          <rect x="20" y="118" width="52" height="6" rx="3" fill="#94a3b8" />
+          <rect x="20" y="130" width="40" height="5" rx="2.5" fill="#cbd5e1" />
+          <rect x="20" y="140" width="46" height="5" rx="2.5" fill="#cbd5e1" />
+          <rect x="20" y="150" width="34" height="5" rx="2.5" fill="#cbd5e1" />
+        </motion.g>
+        {/* AI core */}
+        <motion.g animate={{ scale: beat >= 2 && beat < 4 ? [1, 1.06, 1] : 1 }} transition={{ duration: 1, repeat: beat >= 2 && beat < 4 ? Infinity : 0 }}
+          style={{ transformOrigin: '210px 140px' }}>
+          <rect x="164" y="94" width="92" height="92" rx="26" fill="#6d28d9" />
+          <g transform="translate(210,140)" fill="#fff">
+            <circle cx="0" cy="-14" r="4.6" /><circle cx="-15" cy="4" r="4.6" /><circle cx="15" cy="4" r="4.6" /><circle cx="0" cy="20" r="4.6" />
+            <path d="M0,-14 L-15,4 M0,-14 L15,4 M-15,4 L0,20 M15,4 L0,20 M-15,4 L15,4" stroke="#fff" strokeWidth="1.7" />
+          </g>
+          <text x="210" y="205" textAnchor="middle" style={{ fontSize: 12, fontWeight: 800, fill: 'currentColor' }}>AI Engine</text>
+        </motion.g>
+        {/* neurons firing */}
+        {beat >= 2 && [0, 1, 2, 3, 4, 5].map((i) => {
+          const a = (i / 6) * Math.PI * 2;
+          return (
+            <motion.circle key={i} cx={210 + Math.cos(a) * 86} cy={140 + Math.sin(a) * 86} r="4" fill="#c4b5fd"
+              animate={{ opacity: [0.2, 1, 0.2], scale: [0.8, 1.4, 0.8] }}
+              transition={{ duration: 1.4, repeat: Infinity, delay: i * 0.18 }} />
+          );
+        })}
+      </svg>
+
+      <div className="space-y-2.5">
+        <p className="text-[0.68rem] font-bold uppercase tracking-widest opacity-60">Problem DNA extracted</p>
+        {outs.map((o, i) => (
+          <div key={o.label}
+            className="rounded-xl px-3.5 py-2.5 flex items-center justify-between gap-3"
+            style={{ background: 'rgba(255,255,255,.07)', border: '1px solid rgba(255,255,255,.12)', ...reveal(beat >= i + 1, { x: 18, y: 0 }) }}>
+            <span className="text-[0.74rem] opacity-70">{o.label}</span>
+            <span className="text-[0.82rem] font-bold" style={{ color: o.color }}>{o.value}</span>
+          </div>
+        ))}
+        <div className="flex items-center gap-3 pt-1" style={reveal(beat >= 4, { y: 6 })}>
+          <ScoreRing value={94} size={56} stroke={5} color="#a78bfa" />
+          <div>
+            <p className="text-[0.8rem] font-bold">Confidence</p>
+            <p className="text-[0.7rem] opacity-60">Impact & feasibility score computed</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SceneGovt({ playing }) {
+  const beat = useBeat(4, playing, 1500);
+  const rows = ['Field verification by block officer', 'Cross-checked against 3 similar reports', 'Routed to Drinking Water & Sanitation', 'Priority confirmed HIGH · 87/100'];
+  return (
+    <div className="w-full h-full grid md:grid-cols-[1fr_1fr] gap-4 items-center">
+      <svg viewBox="0 0 420 300" className="w-full h-full text-slate-700">
+        <Building x={140} y={130} color={ROLES.govt.hex} kind="govt" label="District Innovation Cell" scale={1} />
+        <Person x={300} y={128} color="#0f766e" arm={beat >= 2 ? -50 : -10} label="Nodal Officer" sub="Hazaribagh" />
+        {beat >= 1 && <Packet from={[40, 60]} to={[300, 96]} color={ROLES.citizen.hex} label="CH" repeat={1} />}
+        {beat >= 3 && (
+          <g style={{ transformOrigin: '340px 60px', ...reveal(true, { y: 0, scale: 0.6 }) }}>
+            <circle cx="340" cy="60" r="30" fill={ROLES.govt.hex} />
+            <path d="M328,60 l8,9 l17,-19" stroke="#fff" strokeWidth="4.4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+            <text x="340" y="106" textAnchor="middle" style={{ fontSize: 12, fontWeight: 800, fill: ROLES.govt.hex }}>VALIDATED</text>
+          </g>
+        )}
+      </svg>
+      <div className="space-y-2">
+        {rows.map((r, i) => (
+          <div key={r} className="flex items-center gap-2.5 text-[0.82rem]" style={reveal(beat >= i, { x: 16, y: 0 })}>
+            <span className="w-5 h-5 rounded-full grid place-items-center shrink-0" style={{ background: ROLES.govt.hex }}>
+              <Check size={12} color="#fff" strokeWidth={3.5} />
+            </span>
+            <span className="opacity-85">{r}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+const UNI_MATCHES = [
+  { name: 'IIT (ISM) Dhanbad', score: 94, why: 'Groundwater modelling · IoT sensor networks · Environmental Engg.' },
+  { name: 'Birsa Agricultural University', score: 87, why: 'Micro-irrigation · Soil & water conservation' },
+  { name: 'BIT Mesra', score: 81, why: 'Embedded systems · Remote sensing · AI for social good' },
+];
+
+function SceneMatch({ playing }) {
+  const beat = useBeat(4, playing, 1450);
+  return (
+    <div className="w-full h-full grid md:grid-cols-[0.9fr_1.1fr] gap-5 items-center">
+      <svg viewBox="0 0 360 300" className="w-full h-full text-slate-700">
+        <Building x={180} y={110} color={ROLES.varsity.hex} kind="university" label="IIT (ISM) Dhanbad" />
+        {beat >= 1 && <Packet from={[20, 40]} to={[180, 70]} color={ROLES.govt.hex} label="✓" repeat={1} />}
+        {beat >= 3 && (
+          <g style={reveal(true, { y: 8 })}>
+            <rect x="112" y="216" width="136" height="30" rx="15" fill={ROLES.varsity.hex} />
+            <text x="180" y="236" textAnchor="middle" style={{ fontSize: 12, fontWeight: 800, fill: '#fff' }}>CHALLENGE ACCEPTED</text>
+          </g>
+        )}
+      </svg>
+      <div className="space-y-2.5">
+        <p className="text-[0.68rem] font-bold uppercase tracking-widest opacity-60">AI Solution Consortium · university fit</p>
+        {UNI_MATCHES.map((m, i) => (
+          <div key={m.name}
+            className="rounded-2xl px-3.5 py-2.5 flex items-center gap-3.5"
+            style={{ background: 'rgba(255,255,255,.07)', border: `1px solid ${i === 0 && beat >= 3 ? ROLES.varsity.hex : 'rgba(255,255,255,.12)'}`, ...reveal(beat >= i, { x: 22, y: 0 }) }}>
+            <ScoreRing value={m.score} size={52} stroke={5} color={ROLES.varsity.hex} />
+            <div className="min-w-0">
+              <p className="font-display font-bold text-[0.88rem] flex items-center gap-2">
+                {m.name}
+                {i === 0 && <span className="chip" style={{ background: `${ROLES.varsity.hex}33` }}>Best match</span>}
+              </p>
+              <p className="text-[0.72rem] opacity-60">{m.why}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+const DISCIPLINES = [
+  { name: 'Civil Engineering', color: '#6366f1', x: 90 },
+  { name: 'Environmental Science', color: '#10b981', x: 250 },
+  { name: 'Computer Science', color: '#06b6d4', x: 410 },
+  { name: 'IoT / Electronics', color: '#f59e0b', x: 570 },
+];
+
+function SceneTeam({ playing }) {
+  const beat = useBeat(6, playing, 1200);
+  return (
+    <svg viewBox="0 0 660 330" className="w-full h-full text-slate-700">
+      {DISCIPLINES.map((d, i) => {
+        const shown = beat >= i + 1;
+        return (
+          <g key={d.name}
+            style={{
+              opacity: shown ? 1 : 0,
+              transform: shown ? 'translate(0px, 0px)' : 'translate(0px, -22px)',
+              transition: 'opacity .5s cubic-bezier(.22,1,.36,1), transform .6s cubic-bezier(.22,1,.36,1)',
+            }}>
+            <Person x={d.x} y={80} color={d.color} scale={0.82} />
+            <text x={d.x} y={172} textAnchor="middle" style={{ fontSize: 10.5, fontWeight: 700, fill: 'currentColor' }}>{d.name}</text>
+          </g>
+        );
+      })}
+      {DISCIPLINES.map((d) => (
+        <path key={`l-${d.name}`} d={`M${d.x},190 Q${d.x},240 330,266`} fill="none" stroke={d.color} strokeWidth="2"
+          strokeDasharray="4 5" style={{ opacity: beat >= 4 ? 0.6 : 0, transition: 'opacity .5s ease' }} />
+      ))}
+      <g style={{ transformOrigin: '330px 282px', opacity: beat >= 5 ? 1 : 0, transform: beat >= 5 ? 'scale(1)' : 'scale(0.7)', transition: 'opacity .5s ease, transform .5s cubic-bezier(.22,1,.36,1)' }}>
+        <rect x="196" y="266" width="268" height="38" rx="19" fill={ROLES.varsity.hex} />
+        <text x="330" y="291" textAnchor="middle" style={{ fontSize: 13, fontWeight: 800, fill: '#fff' }}>
+          MULTIDISCIPLINARY TEAM · 5 MEMBERS
+        </text>
+      </g>
+      <SceneCaption text={beat >= 5 ? 'One team, four disciplines' : 'Assembling the team…'} y={26} />
+    </svg>
+  );
+}
+
+function SceneIndustry({ playing }) {
+  const beat = useBeat(5, playing, 1300);
+  const offers = [
+    { label: 'Technology', color: '#f59e0b', icon: '⚙' },
+    { label: 'Mentorship', color: '#06b6d4', icon: '★' },
+    { label: '₹18.5 L Funding', color: '#10b981', icon: '₹' },
+  ];
+  return (
+    <svg viewBox="0 0 780 330" className="w-full h-full text-slate-700">
+      <Building x={130} y={110} color={ROLES.industry.hex} kind="industry" label="HydroSense Technologies" />
+      <Building x={640} y={110} color={ROLES.varsity.hex} kind="university" label="IIT (ISM) Team" />
+      {offers.map((o, i) => {
+        const shown = beat >= i + 1;
+        return (
+          <g key={o.label} style={{
+            opacity: shown ? 1 : 0,
+            transform: shown ? 'translateX(190px)' : 'translateX(0px)',
+            transition: 'opacity .5s ease, transform 1.6s cubic-bezier(.4,0,.2,1)',
+          }}>
+            <rect x={172} y={70 + i * 46} width="112" height="30" rx="15" fill={o.color} />
+            <text x={228} y={90 + i * 46} textAnchor="middle" style={{ fontSize: 11, fontWeight: 800, fill: '#fff' }}>
+              {o.icon} {o.label}
+            </text>
+          </g>
+        );
+      })}
+      <g style={{ opacity: beat >= 4 ? 1 : 0, transition: 'opacity .5s ease' }}>
+        <rect x="272" y="252" width="236" height="38" rx="19" fill="#0f766e" />
+        <text x="390" y="277" textAnchor="middle" style={{ fontSize: 12.5, fontWeight: 800, fill: '#fff' }}>PARTNERSHIP CONFIRMED</text>
+      </g>
+      <SceneCaption text="AI matched on domain + technology + CSR focus + funding" y={26} />
+    </svg>
+  );
+}
+
+function ScenePrototype({ playing }) {
+  const beat = useBeat(4, playing, 1500);
+  const steps = ['Idea', 'Design', 'Prototype'];
+  return (
+    <svg viewBox="0 0 760 330" className="w-full h-full text-slate-700">
+      <Person x={90} y={130} color={ROLES.varsity.hex} scale={0.85} arm={beat >= 1 ? -40 : 0} label="Student team" />
+      {steps.map((s, i) => (
+        <g key={s} style={{ opacity: beat >= i + 1 ? 1 : 0.22, transition: 'opacity .5s ease' }}>
+          <rect x={220 + i * 175} y="92" width="140" height="106" rx="16"
+            fill={i <= beat - 1 ? ROLES.varsity.hex : '#94a3b8'} opacity={i <= beat - 1 ? 0.16 : 0.1}
+            stroke={i <= beat - 1 ? ROLES.varsity.hex : '#cbd5e1'} strokeWidth="1.6" />
+          <g transform={`translate(${290 + i * 175},134)`}>
+            {i === 0 && <><circle r="17" fill="#fbbf24" opacity="0.85" /><path d="M-5,6 h10 M-4,11 h8" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" /></>}
+            {i === 1 && <><rect x="-19" y="-14" width="38" height="28" rx="3" fill="#38bdf8" opacity="0.85" /><path d="M-12,-6 h24 M-12,2 h16" stroke="#fff" strokeWidth="2" strokeLinecap="round" /></>}
+            {i === 2 && (
+              <>
+                <rect x="-18" y="-6" width="36" height="20" rx="4" fill="#10b981" />
+                <rect x="-6" y="-20" width="12" height="14" rx="3" fill="#0ea5e9" />
+                <motion.circle cx="0" cy="-26" r="3.6" fill="#fbbf24"
+                  animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1.1, repeat: Infinity }} />
+              </>
+            )}
+          </g>
+          <text x={290 + i * 175} y="182" textAnchor="middle" style={{ fontSize: 12, fontWeight: 800, fill: 'currentColor' }}>{s}</text>
+          {i < 2 && (
+            <path d={`M${365 + i * 175},145 h34`} stroke={ROLES.varsity.hex} strokeWidth="2.4" strokeLinecap="round"
+              style={{ opacity: beat >= i + 2 ? 1 : 0, transition: 'opacity .4s ease' }} />
+          )}
+        </g>
+      ))}
+      <g transform="translate(380,250)">
+        <rect x="-190" y="-14" width="380" height="26" rx="13" fill="#94a3b8" opacity="0.18" />
+        <rect x="-190" y="-14" height="26" rx="13" fill={ROLES.varsity.hex}
+          width={(beat / 3) * 380} style={{ transition: 'width .8s cubic-bezier(.22,1,.36,1)' }} />
+        <text x="0" y="4" textAnchor="middle" style={{ fontSize: 11.5, fontWeight: 800, fill: '#fff' }}>
+          {Math.round((beat / 3) * 100)}% · Solar recharge unit + IoT flow sensors
+        </text>
+      </g>
+    </svg>
+  );
+}
+
+function ScenePilot({ playing }) {
+  const beat = useBeat(4, playing, 1500);
+  return (
+    <svg viewBox="0 0 760 330" className="w-full h-full text-slate-700">
+      <HandpumpScene x={140} y={170} broken={beat < 3} />
+      <Person x={330} y={140} color={ROLES.varsity.hex} scale={0.78} arm={beat >= 1 ? -30 : 0} label="Team" />
+      <Person x={430} y={140} color={ROLES.citizen.hex} scale={0.78} arm={beat >= 2 ? -55 : 0} label="Community" />
+      <Person x={530} y={140} color={ROLES.govt.hex} scale={0.78} arm={beat >= 3 ? -55 : 0} label="Block Officer" />
+      {[['Pilot running', 1], ['Community feedback', 2], ['Approved & deployed', 3]].map(([label, at], i) => (
+        <g key={label} style={{ opacity: beat >= at ? 1 : 0, transition: 'opacity .45s ease' }}>
+          <rect x={608} y={70 + i * 52} width="132" height="36" rx="10"
+            fill={i === 2 ? ROLES.govt.hex : '#64748b'} opacity={i === 2 ? 1 : 0.22} />
+          <text x={674} y={93 + i * 52} textAnchor="middle"
+            style={{ fontSize: 11, fontWeight: 800, fill: i === 2 ? '#fff' : 'currentColor' }}>{label}</text>
+        </g>
+      ))}
+      <SceneCaption text={beat >= 3 ? 'Deployed across 3 hamlets · 480 households' : 'Field pilot in Barkagaon'} y={26} />
+    </svg>
+  );
+}
+
+const IMPACT_METRICS = [
+  { label: 'People benefited', value: 2400, unit: '' },
+  { label: 'Water saved / year', value: 4200000, unit: ' L' },
+  { label: 'Walking distance cut', value: 2.8, unit: ' km/day' },
+  { label: 'Illness reduction', value: 64, unit: '%' },
+  { label: 'Project duration', value: 9, unit: ' months' },
+  { label: 'Sustainability', value: 86, unit: '/100' },
+];
+
+function SceneImpact({ playing }) {
+  const beat = useBeat(3, playing, 1600);
+  return (
+    <div className="w-full h-full flex flex-col justify-center gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5">
+        {IMPACT_METRICS.map((m, i) => (
+          <motion.div key={m.label} initial={{ y: 18 }} animate={{ y: 0 }}
+            transition={{ delay: i * 0.12, duration: 0.45 }}
+            className="rounded-2xl px-4 py-3"
+            style={{ background: 'rgba(255,255,255,.07)', border: '1px solid rgba(255,255,255,.12)' }}>
+            <p className="font-display text-2xl font-extrabold" style={{ color: '#6ee7b7' }}>
+              <Counter to={m.value} decimals={m.value % 1 !== 0 ? 1 : 0} suffix={m.unit} />
+            </p>
+            <p className="text-[0.72rem] font-semibold opacity-60 mt-0.5">{m.label}</p>
+          </motion.div>
+        ))}
+      </div>
+      <motion.div initial={{ y: 12 }} animate={{ y: 0 }} transition={{ delay: 0.8 }}
+        className="rounded-2xl p-4 flex items-center gap-4"
+        style={{ background: 'linear-gradient(120deg,#05966955,#0891b255)', border: '1px solid rgba(255,255,255,.14)' }}>
+        <svg viewBox="0 0 120 100" className="w-24 h-20 shrink-0 text-white">
+          <Person x={60} y={30} color={ROLES.citizen.hex} scale={0.62} arm={-70} />
+        </svg>
+        <div>
+          <p className="font-display font-bold text-lg">Impact verified and reported back to Ramesh.</p>
+          <p className="text-[0.84rem] opacity-80 mt-0.5">
+            Reported by a farmer · validated by government · built by students · funded by industry · owned by the community.
+          </p>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
+function SceneCaption({ text, y = 306 }) {
+  return (
+    <motion.text key={text} x="50%" y={y} textAnchor="middle"
+      initial={{ opacity: 0, y: y + 6 }} animate={{ opacity: 0.75, y }}
+      style={{ fontSize: 13, fontWeight: 700, fill: 'currentColor' }}>
+      {text}
+    </motion.text>
+  );
+}
+
+const SCENE_VIEWS = {
+  1: SceneCitizen, 2: SceneAI, 3: SceneGovt, 4: SceneMatch, 5: SceneTeam,
+  6: SceneIndustry, 7: ScenePrototype, 8: ScenePilot, 9: SceneImpact,
+};
+
+/* ══════════════════════════════════════════════════════════════════════
+   Page
+   ══════════════════════════════════════════════════════════════════════ */
+export default function Simulation() {
+  const { t } = useShell();
+  const [idx, setIdx] = useState(0);
+  const [playing, setPlaying] = useState(false);
+  const [started, setStarted] = useState(false);
+  const [demoOpen, setDemoOpen] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const timer = useRef(null);
+  const raf = useRef(null);
+
+  const scene = SCENES[idx];
+  const View = SCENE_VIEWS[scene.id];
+  const role = ROLES[scene.actor];
 
   useEffect(() => {
+    clearTimeout(timer.current);
+    cancelAnimationFrame(raf.current);
+    setProgress(0);
     if (!playing) return undefined;
+    const start = performance.now();
+    const tick = (now) => {
+      const p = Math.min(1, (now - start) / scene.dur);
+      setProgress(p);
+      if (p < 1) raf.current = requestAnimationFrame(tick);
+    };
+    raf.current = requestAnimationFrame(tick);
     timer.current = setTimeout(() => {
-      setStep((s) => {
-        if (s >= SCRIPT.length - 1) { setPlaying(false); return s; }
-        return s + 1;
+      setIdx((i) => {
+        if (i >= SCENES.length - 1) { setPlaying(false); return i; }
+        return i + 1;
       });
-    }, cur.kind === 'ai' || cur.kind === 'impact' ? 5200 : 3600);
-    return () => clearTimeout(timer.current);
-  }, [playing, step, cur.kind]);
+    }, scene.dur);
+    return () => { clearTimeout(timer.current); cancelAnimationFrame(raf.current); };
+  }, [playing, idx, scene.dur]);
 
-  const go = (n) => { setPlaying(false); setStep(Math.max(0, Math.min(SCRIPT.length - 1, n))); };
+  const go = useCallback((n) => {
+    setIdx(Math.max(0, Math.min(SCENES.length - 1, n)));
+  }, []);
+
+  const start = () => { setStarted(true); setIdx(0); setPlaying(true); };
+  const restart = () => { setIdx(0); setPlaying(false); setProgress(0); };
+
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === 'ArrowRight') go(idx + 1);
+      if (e.key === 'ArrowLeft') go(idx - 1);
+      if (e.key === ' ') { e.preventDefault(); setPlaying((p) => !p); }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [idx, go]);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white relative overflow-hidden">
+    <div className="min-h-screen relative overflow-hidden" style={{ background: '#060a14', color: '#e2e8f0' }}>
       <div className="absolute inset-0 opacity-40 pointer-events-none"
-        style={{ backgroundImage: 'radial-gradient(at 15% 10%, #4f46e5 0px, transparent 42%), radial-gradient(at 85% 25%, #0891b2 0px, transparent 40%), radial-gradient(at 55% 95%, #059669 0px, transparent 45%)' }} />
-      <div className="absolute inset-0 pointer-events-none opacity-[0.06]"
-        style={{ backgroundImage: 'linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)', backgroundSize: '48px 48px' }} />
+        style={{ backgroundImage: 'radial-gradient(at 12% 8%, #4f46e5 0px, transparent 42%), radial-gradient(at 88% 22%, #0891b2 0px, transparent 40%), radial-gradient(at 52% 96%, #059669 0px, transparent 45%)' }} />
+      <div className="absolute inset-0 pointer-events-none opacity-[0.05]"
+        style={{ backgroundImage: 'linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)', backgroundSize: '52px 52px' }} />
 
-      <div className="relative max-w-6xl mx-auto px-4 sm:px-6 py-5">
+      <div className="relative max-w-6xl mx-auto px-4 sm:px-6 py-5 min-h-screen flex flex-col">
         {/* header */}
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-4">
-            <Link to="/" className="btn bg-white/10 text-white border-white/15 btn-sm hover:bg-white/20"><ArrowLeft size={14} />Home</Link>
+            <Link to="/" className="btn btn-sm text-white border-white/15" style={{ background: 'rgba(255,255,255,.1)' }}>
+              <ArrowLeft size={14} />{t('nav.home')}
+            </Link>
             <div className="hidden sm:block"><Logo dark /></div>
           </div>
           <div className="flex items-center gap-2">
-            <Chip color="#a5b4fc" bg="rgba(255,255,255,.1)">Interactive lifecycle simulation</Chip>
+            <div className="hidden sm:block"><ShellControls compact /></div>
+            <Chip color="#a5b4fc" bg="rgba(255,255,255,.1)">{t('sim.badge')}</Chip>
             <button className="btn btn-sm bg-white text-slate-900 hover:bg-white/90" onClick={() => setDemoOpen(true)}>
-              <Zap size={13} />Presentation mode
+              <Zap size={13} />{t('sim.presentation')}
             </button>
           </div>
         </div>
 
-        {/* title */}
-        <div className="text-center mt-8 mb-6">
-          <motion.h1 initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }}
-            className="font-display text-2xl sm:text-4xl font-extrabold leading-tight">
-            From one villager&apos;s problem to a deployed solution
-          </motion.h1>
-          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.15 }}
-            className="text-slate-300 mt-2 text-[0.92rem] max-w-2xl mx-auto">
-            Watch a real challenge — <b className="text-white">“Severe drinking water shortage in Barkagaon villages”</b> — travel through
-            every stakeholder in the ecosystem.
-          </motion.p>
-        </div>
-
         {/* actor rail */}
-        <div className="flex justify-center gap-2 sm:gap-4 mb-6">
-          {ACTORS.map((a) => {
+        <div className="flex justify-center gap-2 sm:gap-5 mt-6">
+          {ACTOR_RAIL.map((a) => {
             const r = ROLES[a.key];
-            const on = cur.actor === a.key;
+            const on = scene.actor === a.key || (a.key === 'ai' && scene.key === 'match');
             return (
               <motion.div key={a.key} className="flex flex-col items-center gap-1.5"
-                animate={{ scale: on ? 1.08 : 1, opacity: on ? 1 : 0.42 }} transition={{ type: 'spring', stiffness: 300, damping: 22 }}>
+                animate={{ scale: on ? 1.1 : 1, opacity: on ? 1 : 0.35 }} transition={{ type: 'spring', stiffness: 300, damping: 22 }}>
                 <div className="relative">
                   {on && <span className="absolute inset-0 rounded-2xl anim-ring" style={{ background: `${r.hex}77` }} />}
-                  <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl grid place-items-center relative"
+                  <div className="w-11 h-11 rounded-2xl grid place-items-center relative"
                     style={{ background: on ? `linear-gradient(135deg,${r.hex},${r.deep})` : 'rgba(255,255,255,.08)', boxShadow: on ? `0 14px 30px -12px ${r.hex}` : 'none' }}>
-                    <a.Icon size={20} />
+                    <a.Icon size={19} />
                   </div>
                 </div>
-                <span className="text-[0.64rem] sm:text-[0.7rem] font-bold">{r.label}</span>
+                <span className="text-[0.6rem] sm:text-[0.68rem] font-bold">{t(`role.${a.key}`)}</span>
               </motion.div>
             );
           })}
         </div>
 
-        {/* progress */}
-        <div className="flex items-center gap-1.5 mb-5">
-          {SCRIPT.map((s, i) => (
-            <button key={s.id} onClick={() => go(i)} className="flex-1 group" aria-label={`Step ${i + 1}`}>
-              <div className="h-1.5 rounded-full overflow-hidden bg-white/10">
-                <motion.div className="h-full rounded-full"
-                  style={{ background: ROLES[s.actor].hex }}
-                  animate={{ width: i < step ? '100%' : i === step ? '100%' : '0%', opacity: i <= step ? 1 : 0.2 }}
-                  transition={{ duration: 0.5 }} />
+        {/* scene timeline */}
+        <div className="flex items-center gap-1 mt-5">
+          {SCENES.map((s, i) => (
+            <button key={s.id} onClick={() => go(i)} className="flex-1 group" title={`${t('sim.scene')} ${s.id}`}>
+              <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,.12)' }}>
+                <motion.div className="h-full rounded-full" style={{ background: ROLES[s.actor].hex }}
+                  animate={{ width: i < idx ? '100%' : i === idx ? `${Math.max(playing ? progress * 100 : 100, 8)}%` : '0%' }}
+                  transition={{ duration: playing ? 0.1 : 0.4, ease: 'linear' }} />
               </div>
+              <p className="text-[0.55rem] font-bold mt-1 text-center opacity-40 group-hover:opacity-80 transition hidden md:block">
+                {String(s.id).padStart(2, '0')}
+              </p>
             </button>
           ))}
         </div>
 
-        {/* stage card */}
-        <div className="min-h-[430px]">
-          <AnimatePresence mode="wait">
-            <motion.div key={cur.id}
-              initial={{ opacity: 0, y: 24, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -18, scale: 0.99 }}
-              transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}>
-              <StageCard step={cur} index={step} />
+        {/* stage */}
+        <div className="flex-1 mt-4 relative">
+          {!started ? (
+            <motion.div key="intro" initial={{ scale: 0.99 }} animate={{ scale: 1 }}
+                className="absolute inset-0 flex flex-col items-center justify-center text-center gap-5">
+                <motion.h1 initial={{ y: 16 }} animate={{ y: 0 }}
+                  className="font-display text-3xl sm:text-5xl font-extrabold max-w-3xl leading-[1.1]">
+                  {t('sim.title')}
+                </motion.h1>
+                <p className="opacity-70 max-w-xl text-[0.95rem]">{t('sim.sub')}</p>
+                <motion.button
+                  initial={{ y: 10 }} animate={{ y: 0 }} transition={{ delay: 0.3 }}
+                  whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
+                  onClick={start}
+                  className="btn px-7 py-4 text-base font-bold text-white"
+                  style={{ background: 'linear-gradient(120deg,#4f46e5,#06b6d4)', boxShadow: '0 22px 50px -18px #4f46e5' }}>
+                  <Play size={20} />{t('sim.start')}
+                </motion.button>
+                <p className="text-[0.72rem] opacity-40">9 scenes · ~70 seconds · space / arrow keys work too</p>
             </motion.div>
-          </AnimatePresence>
+          ) : (
+            <div key={scene.id} className="scene-enter rounded-3xl p-4 sm:p-6 relative overflow-hidden h-full flex flex-col"
+                style={{ background: 'rgba(255,255,255,.055)', border: '1px solid rgba(255,255,255,.12)', backdropFilter: 'blur(14px)' }}>
+                <div className="absolute -right-20 -top-20 w-64 h-64 rounded-full blur-3xl" style={{ background: `${role.hex}44` }} />
+
+                {/* who / action */}
+                <div className="relative flex items-start gap-4 flex-wrap">
+                  <div className="w-12 h-12 rounded-2xl grid place-items-center font-display font-extrabold shrink-0 text-white"
+                    style={{ background: `linear-gradient(135deg,${role.hex},${role.deep})`, boxShadow: `0 16px 34px -14px ${role.hex}` }}>
+                    {String(scene.id).padStart(2, '0')}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="chip" style={{ background: `${role.hex}30`, color: '#fff' }}>{t(`role.${scene.actor}`)}</span>
+                      <span className="text-[0.74rem] font-semibold opacity-60">{scene.who}</span>
+                    </div>
+                    <h2 className="font-display text-lg sm:text-2xl font-extrabold mt-1 leading-tight">{scene.action}</h2>
+                  </div>
+                </div>
+
+                {/* animated stage */}
+                <div className="relative flex-1 min-h-[240px] sm:min-h-[300px] mt-3">
+                  <View playing={playing} />
+                </div>
+
+                {/* result / next */}
+                <div className="relative grid sm:grid-cols-[1.5fr_1fr] gap-2.5 mt-3">
+                  <motion.div initial={{ y: 8 }} animate={{ y: 0 }} transition={{ delay: 0.5 }}
+                    className="rounded-2xl px-4 py-2.5" style={{ background: `${role.hex}22`, border: `1px solid ${role.hex}55` }}>
+                    <p className="text-[0.62rem] font-bold uppercase tracking-widest opacity-60">Result</p>
+                    <p className="text-[0.88rem] font-bold">{scene.result}</p>
+                  </motion.div>
+                  <motion.div initial={{ y: 8 }} animate={{ y: 0 }} transition={{ delay: 0.65 }}
+                    className="rounded-2xl px-4 py-2.5" style={{ background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.12)' }}>
+                    <p className="text-[0.62rem] font-bold uppercase tracking-widest opacity-60 flex items-center gap-1">
+                      Next <ArrowRight size={10} />
+                    </p>
+                    <p className="text-[0.8rem] opacity-85">{scene.next}</p>
+                  </motion.div>
+                </div>
+            </div>
+          )}
         </div>
 
         {/* controls */}
-        <div className="sticky bottom-4 mt-6">
-          <div className="mx-auto max-w-xl rounded-2xl px-4 py-3 flex items-center justify-between gap-3"
-            style={{ background: 'rgba(255,255,255,.09)', backdropFilter: 'blur(14px)', border: '1px solid rgba(255,255,255,.14)' }}>
-            <div className="text-[0.74rem] font-bold text-slate-300 shrink-0">
-              STEP {String(step + 1).padStart(2, '0')} <span className="text-slate-500">/ {SCRIPT.length}</span>
+        {started && (
+          <motion.div initial={{ y: 14 }} animate={{ y: 0 }} className="mt-4 mb-2">
+            <div className="mx-auto max-w-2xl rounded-2xl px-4 py-3 flex items-center justify-between gap-3"
+              style={{ background: 'rgba(255,255,255,.09)', backdropFilter: 'blur(14px)', border: '1px solid rgba(255,255,255,.14)' }}>
+              <div className="text-[0.72rem] font-bold opacity-70 shrink-0">
+                {t('sim.step')} {String(idx + 1).padStart(2, '0')} <span className="opacity-50">/ {SCENES.length}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <button className="btn btn-sm text-white border-white/15" style={{ background: 'rgba(255,255,255,.1)' }}
+                  onClick={() => go(idx - 1)} disabled={idx === 0} title={t('common.previous')}><SkipBack size={14} /></button>
+                <button className="btn btn-sm px-4 bg-white text-slate-900 hover:bg-white/90" onClick={() => setPlaying((p) => !p)}>
+                  {playing ? <><Pause size={14} />{t('common.pause')}</> : <><Play size={14} />{idx === SCENES.length - 1 ? t('common.replay') : t('common.play')}</>}
+                </button>
+                <button className="btn btn-sm text-white border-white/15" style={{ background: 'rgba(255,255,255,.1)' }}
+                  onClick={() => go(idx + 1)} disabled={idx === SCENES.length - 1} title={t('common.next')}><SkipForward size={14} /></button>
+                <button className="btn btn-sm text-white border-white/15" style={{ background: 'rgba(255,255,255,.1)' }}
+                  onClick={restart} title={t('common.restart')}><RotateCcw size={14} /></button>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <button className="btn btn-sm bg-white/10 text-white border-white/15 hover:bg-white/20" onClick={() => go(step - 1)} disabled={step === 0}><SkipBack size={14} /></button>
-              <button className="btn btn-sm px-4 bg-white text-slate-900 hover:bg-white/90" onClick={() => setPlaying((p) => !p)}>
-                {playing ? <><Pause size={14} />Pause</> : <><Play size={14} />{step === SCRIPT.length - 1 ? 'Replay' : 'Play'}</>}
-              </button>
-              <button className="btn btn-sm bg-white/10 text-white border-white/15 hover:bg-white/20" onClick={() => go(step + 1)} disabled={step === SCRIPT.length - 1}><SkipForward size={14} /></button>
-              <button className="btn btn-sm bg-white/10 text-white border-white/15 hover:bg-white/20" onClick={() => { setPlaying(false); setStep(0); }}><RotateCcw size={14} /></button>
+            <div className="text-center mt-4">
+              <p className="opacity-50 text-[0.82rem]">{t('sim.footer')}</p>
+              <div className="flex flex-wrap justify-center gap-2 mt-2.5">
+                {[['/citizen', 'citizen'], ['/government', 'govt'], ['/university', 'varsity'], ['/industry', 'industry']].map(([to, key]) => (
+                  <Link key={to} to={to} className="btn btn-sm text-white border-white/15" style={{ background: `${ROLES[key].hex}33` }}>
+                    {t(`role.${key}`)} <ArrowRight size={13} />
+                  </Link>
+                ))}
+              </div>
             </div>
-          </div>
-        </div>
-
-        <div className="text-center mt-8 pb-10">
-          <p className="text-slate-400 text-[0.86rem]">This is exactly what happens inside the four dashboards.</p>
-          <div className="flex flex-wrap justify-center gap-2 mt-3">
-            {[['/citizen', 'citizen'], ['/university', 'varsity'], ['/industry', 'industry'], ['/government', 'govt']].map(([to, key]) => (
-              <Link key={to} to={to} className="btn btn-sm text-white border-white/15" style={{ background: `${ROLES[key].hex}33` }}>
-                {ROLES[key].label} dashboard <ArrowRight size={13} />
-              </Link>
-            ))}
-          </div>
-        </div>
+          </motion.div>
+        )}
       </div>
 
       <PresentationMode open={demoOpen} onClose={() => setDemoOpen(false)} />
-    </div>
-  );
-}
-
-/* ── Stage cards ────────────────────────────────────────────────────── */
-function StageCard({ step, index }) {
-  const r = ROLES[step.actor];
-  return (
-    <div className="rounded-3xl p-5 sm:p-7 relative overflow-hidden"
-      style={{ background: 'rgba(255,255,255,.07)', border: '1px solid rgba(255,255,255,.13)', backdropFilter: 'blur(16px)' }}>
-      <div className="absolute -right-16 -top-16 w-56 h-56 rounded-full blur-3xl" style={{ background: `${r.hex}44` }} />
-      <div className="relative">
-        <div className="flex items-start gap-4 flex-wrap">
-          <div className="w-12 h-12 rounded-2xl grid place-items-center font-display font-extrabold shrink-0"
-            style={{ background: `linear-gradient(135deg,${r.hex},${r.deep})`, boxShadow: `0 16px 34px -14px ${r.hex}` }}>
-            {String(index + 1).padStart(2, '0')}
-          </div>
-          <div className="min-w-0 flex-1">
-            <span className="chip" style={{ background: `${r.hex}30`, color: '#fff' }}>{r.label}</span>
-            <h2 className="font-display text-xl sm:text-2xl font-extrabold mt-1.5">{step.title}</h2>
-            <p className="text-slate-300 text-[0.9rem] mt-1 max-w-2xl">{step.caption}</p>
-          </div>
-        </div>
-
-        <div className="mt-6">
-          {step.kind === 'submission' && <Submission />}
-          {step.kind === 'ai' && <AIStage />}
-          {step.kind === 'validate' && <ValidateStage />}
-          {step.kind === 'unimatch' && <MatchStage items={UNI_MATCHES} role="varsity" label="University match score" />}
-          {step.kind === 'team' && <TeamStage />}
-          {step.kind === 'proposal' && <ProposalStage />}
-          {step.kind === 'indmatch' && <MatchStage items={IND_MATCHES} role="industry" label="Industry fit score" />}
-          {step.kind === 'partner' && <PartnerStage />}
-          {step.kind === 'phase' && <PhaseStage step={step} />}
-          {step.kind === 'impact' && <ImpactStage />}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-const Panel = ({ children, className = '' }) => (
-  <div className={cx('rounded-2xl p-4 bg-white/[0.06] border border-white/10', className)}>{children}</div>
-);
-
-function Submission() {
-  return (
-    <div className="grid md:grid-cols-[1.3fr_1fr] gap-4">
-      <Panel>
-        <p className="text-[0.68rem] font-bold uppercase tracking-widest text-slate-400">Challenge submitted</p>
-        <p className="font-display text-lg font-extrabold mt-1">Severe drinking water shortage in Barkagaon villages</p>
-        <p className="text-[0.86rem] text-slate-300 mt-2 leading-relaxed">
-          “Three hamlets have had no functioning handpump for over four months. Families walk 3 km every day to fetch drinking
-          water from a seasonal stream. The borewell has run dry and waterborne illness is rising.”
-        </p>
-        <div className="flex flex-wrap gap-1.5 mt-3">
-          {['📍 Barkagaon, Hazaribagh', '👥 2,400 people affected', '📷 2 photographs', '📄 Community signatures'].map((t) => (
-            <span key={t} className="chip bg-white/10 text-slate-200">{t}</span>
-          ))}
-        </div>
-      </Panel>
-      <Panel className="flex flex-col justify-center items-center text-center">
-        <motion.div className="w-16 h-16 rounded-2xl grid place-items-center mb-3"
-          style={{ background: `linear-gradient(135deg,${ROLES.citizen.hex},${ROLES.citizen.deep})` }}
-          animate={{ y: [0, -6, 0] }} transition={{ duration: 2.4, repeat: Infinity }}>
-          <Users size={28} />
-        </motion.div>
-        <p className="font-display font-bold">Ramesh Mahto</p>
-        <p className="text-[0.76rem] text-slate-400">Farmer · Barkagaon, Hazaribagh</p>
-        <p className="text-[0.74rem] text-slate-400 mt-3">Submission time: <b className="text-white">1 min 48 s</b></p>
-      </Panel>
-    </div>
-  );
-}
-
-function AIStage() {
-  const [phase, setPhase] = useState(0);
-  useEffect(() => {
-    setPhase(0);
-    const t1 = setTimeout(() => setPhase(1), 900);
-    const t2 = setTimeout(() => setPhase(2), 1900);
-    return () => { clearTimeout(t1); clearTimeout(t2); };
-  }, []);
-
-  return (
-    <div className="grid md:grid-cols-3 gap-4">
-      <Panel>
-        <p className="text-[0.68rem] font-bold uppercase tracking-widest text-slate-400">Classification</p>
-        <div className="flex items-center gap-3 mt-2">
-          <ScoreRing value={AI_ANALYSIS.confidence} size={62} color="#22d3ee" />
-          <div>
-            <p className="font-display font-extrabold text-cyan-300">{AI_ANALYSIS.category}</p>
-            <p className="text-[0.72rem] text-slate-400">confidence · {AI_ANALYSIS.district}</p>
-          </div>
-        </div>
-      </Panel>
-      <Panel>
-        <p className="text-[0.68rem] font-bold uppercase tracking-widest text-slate-400">Priority score</p>
-        <p className="font-display text-3xl font-extrabold mt-1 text-amber-300">
-          <Counter to={AI_ANALYSIS.priority} />/100 <span className="text-sm">{AI_ANALYSIS.level}</span>
-        </p>
-        <div className="space-y-1.5 mt-2">
-          {AI_ANALYSIS.factors.map(([l, v], i) => (
-            <div key={l} className="flex items-center gap-2">
-              <span className="text-[0.68rem] text-slate-400 w-28">{l}</span>
-              <Bar value={phase >= 1 ? v : 0} color="#f59e0b" height={4} bg="rgba(255,255,255,.1)" delay={i * 0.06} />
-            </div>
-          ))}
-        </div>
-      </Panel>
-      <Panel>
-        <p className="text-[0.68rem] font-bold uppercase tracking-widest text-slate-400">Similar challenges found</p>
-        <p className="font-display text-3xl font-extrabold mt-1 text-violet-300">{AI_ANALYSIS.duplicates.length}</p>
-        <div className="space-y-2 mt-2">
-          {AI_ANALYSIS.duplicates.map((d, i) => (
-            <motion.div key={d.title} initial={{ opacity: 0, x: -8 }}
-              animate={phase >= 2 ? { opacity: 1, x: 0 } : {}} transition={{ delay: i * 0.12 }}>
-              <p className="text-[0.72rem] text-slate-300 truncate">{d.title}</p>
-              <div className="flex items-center gap-2">
-                <Bar value={d.sim} color="#a78bfa" height={4} bg="rgba(255,255,255,.1)" />
-                <span className="text-[0.66rem] font-bold text-slate-400">{d.sim}%</span>
-              </div>
-            </motion.div>
-          ))}
-        </div>
-      </Panel>
-    </div>
-  );
-}
-
-function ValidateStage() {
-  return (
-    <div className="grid md:grid-cols-[1fr_1.2fr] gap-4">
-      <Panel className="flex flex-col items-center justify-center text-center py-8">
-        <motion.div initial={{ scale: 0, rotate: -40 }} animate={{ scale: 1, rotate: 0 }}
-          transition={{ type: 'spring', stiffness: 220, damping: 14 }}
-          className="w-20 h-20 rounded-3xl grid place-items-center mb-3"
-          style={{ background: `linear-gradient(135deg,${ROLES.govt.hex},${ROLES.govt.deep})`, boxShadow: `0 20px 40px -16px ${ROLES.govt.hex}` }}>
-          <Check size={38} strokeWidth={3} />
-        </motion.div>
-        <p className="font-display text-xl font-extrabold text-emerald-300">Validated</p>
-        <p className="text-[0.78rem] text-slate-400 mt-1">District Innovation Cell, Hazaribagh</p>
-      </Panel>
-      <Panel>
-        <p className="text-[0.68rem] font-bold uppercase tracking-widest text-slate-400">Verification record</p>
-        <div className="space-y-2.5 mt-2">
-          {[
-            ['Field verification by block officer', 'Completed'],
-            ['Cross-checked against 3 similar challenges', 'Clustered, not duplicate'],
-            ['Department routed', 'Drinking Water & Sanitation'],
-            ['Priority confirmed', 'HIGH · 87/100'],
-          ].map(([k, v]) => (
-            <div key={k} className="flex items-center justify-between gap-3 text-[0.8rem]">
-              <span className="text-slate-300 flex items-center gap-2"><Check size={13} className="text-emerald-400" strokeWidth={3} />{k}</span>
-              <span className="font-bold text-white text-right">{v}</span>
-            </div>
-          ))}
-        </div>
-      </Panel>
-    </div>
-  );
-}
-
-function MatchStage({ items, role, label }) {
-  const r = ROLES[role];
-  return (
-    <div className="space-y-3">
-      <p className="text-[0.68rem] font-bold uppercase tracking-widest text-slate-400">{label}</p>
-      {items.map((m, i) => (
-        <motion.div key={m.name} initial={{ opacity: 0, x: -14 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.15 + i * 0.18 }}>
-          <Panel className="flex items-center gap-4">
-            <ScoreRing value={m.score} size={58} stroke={5} color={r.hex} />
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2 flex-wrap">
-                <p className="font-display font-bold">{m.name}</p>
-                {i === 0 && <span className="chip" style={{ background: `${r.hex}30`, color: '#fff' }}>Best match</span>}
-              </div>
-              <p className="text-[0.78rem] text-slate-400 mt-0.5">{m.why}</p>
-            </div>
-          </Panel>
-        </motion.div>
-      ))}
-    </div>
-  );
-}
-
-function TeamStage() {
-  return (
-    <div className="grid md:grid-cols-[1fr_1.4fr] gap-4">
-      <Panel>
-        <p className="text-[0.68rem] font-bold uppercase tracking-widest text-slate-400">Disciplines combined</p>
-        <div className="flex flex-wrap gap-1.5 mt-2">
-          {['Civil Engineering', 'Environmental Science', 'Computer Science', 'IoT / Electronics'].map((d, i) => (
-            <motion.span key={d} initial={{ opacity: 0, scale: 0.85 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: i * 0.14 }}
-              className="chip bg-white/10 text-slate-100">{d}</motion.span>
-          ))}
-        </div>
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}
-          className="mt-4 text-center text-[0.78rem] font-bold px-3 py-2 rounded-xl"
-          style={{ background: `linear-gradient(90deg,${ROLES.varsity.hex},#06b6d4)` }}>
-          → One multidisciplinary team of 5
-        </motion.div>
-      </Panel>
-      <Panel>
-        <p className="text-[0.68rem] font-bold uppercase tracking-widest text-slate-400">Team composition</p>
-        <div className="space-y-2 mt-2">
-          {TEAM.map((m, i) => (
-            <motion.div key={m.name} initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 + i * 0.12 }}
-              className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full grid place-items-center text-[0.68rem] font-bold"
-                style={{ background: `linear-gradient(135deg,${ROLES.varsity.hex},${ROLES.varsity.deep})` }}>
-                {m.name.split(' ').slice(-2).map((w) => w[0]).join('')}
-              </div>
-              <div className="min-w-0">
-                <p className="text-[0.82rem] font-semibold truncate">{m.name}</p>
-                <p className="text-[0.68rem] text-slate-400 truncate">{m.role} · {m.dept}</p>
-              </div>
-            </motion.div>
-          ))}
-        </div>
-      </Panel>
-    </div>
-  );
-}
-
-function ProposalStage() {
-  const milestones = ['Field survey & baseline', 'Design freeze', 'Prototype development', 'Field testing', 'Pilot deployment', 'Handover & impact report'];
-  return (
-    <div className="grid md:grid-cols-[1.2fr_1fr] gap-4">
-      <Panel>
-        <p className="font-display font-bold text-lg">Community-owned borewell recharge & monitoring system</p>
-        <p className="text-[0.84rem] text-slate-300 mt-1.5">
-          Restore year-round drinking water for three hamlets through rainwater-fed recharge structures
-          and IoT monitoring, handed over to the gram panchayat.
-        </p>
-        <div className="flex flex-wrap gap-4 mt-3 text-[0.78rem]">
-          <span className="text-slate-400">Budget <b className="text-white">₹28,50,000</b></span>
-          <span className="text-slate-400">Duration <b className="text-white">9 months</b></span>
-          <span className="text-slate-400">Milestones <b className="text-white">6</b></span>
-        </div>
-      </Panel>
-      <Panel>
-        <p className="text-[0.68rem] font-bold uppercase tracking-widest text-slate-400">Milestone plan</p>
-        <div className="space-y-2 mt-2">
-          {milestones.map((m, i) => (
-            <motion.div key={m} initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.1 }}
-              className="flex items-center gap-2.5 text-[0.8rem]">
-              <span className="w-5 h-5 rounded-full grid place-items-center text-[0.62rem] font-bold bg-white/10">{i + 1}</span>
-              <span className="text-slate-300">{m}</span>
-            </motion.div>
-          ))}
-        </div>
-      </Panel>
-    </div>
-  );
-}
-
-function PartnerStage() {
-  return (
-    <div className="grid md:grid-cols-3 gap-4">
-      {[
-        { name: 'HydroSense Technologies', role: 'Technology & prototyping', detail: 'IoT flow sensors, LoRaWAN gateway, analytics dashboard', hex: ROLES.industry.hex },
-        { name: 'Tata Steel Foundation', role: 'CSR funding', detail: '₹18,50,000 committed for hardware and community training', hex: '#0ea5e9' },
-        { name: 'Gram Panchayat, Barkagaon', role: 'Ownership & maintenance', detail: 'Two local operators trained for long-term upkeep', hex: ROLES.govt.hex },
-      ].map((p, i) => (
-        <motion.div key={p.name} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.16 }}>
-          <Panel className="h-full">
-            <div className="w-10 h-10 rounded-xl grid place-items-center mb-2" style={{ background: `${p.hex}33` }}>
-              <Factory size={18} />
-            </div>
-            <p className="font-display font-bold">{p.name}</p>
-            <p className="text-[0.72rem] font-semibold mt-0.5" style={{ color: p.hex }}>{p.role}</p>
-            <p className="text-[0.78rem] text-slate-400 mt-1.5">{p.detail}</p>
-          </Panel>
-        </motion.div>
-      ))}
-    </div>
-  );
-}
-
-function PhaseStage({ step }) {
-  const r = ROLES[step.actor];
-  const details = {
-    9: ['3 recharge structures designed', 'IoT flow sensor board v2', 'Solar power module', 'Panchayat dashboard'],
-    10: ['Lab flow calibration', 'Water quality testing', '2 community feedback rounds', 'Firmware iteration v3'],
-    11: ['Block officer inspection', 'Gram sabha approval', 'Water quality certification', 'Sustainability audit'],
-    12: ['3 hamlets covered', '480 households connected', '2 operators trained', 'Maintenance plan handed over'],
-  }[step.id] ?? [];
-
-  return (
-    <div className="grid md:grid-cols-[1fr_1.3fr] gap-4">
-      <Panel className="flex flex-col justify-center">
-        <p className="text-[0.68rem] font-bold uppercase tracking-widest text-slate-400">{step.metricLabel}</p>
-        <p className="font-display text-4xl font-extrabold mt-1" style={{ color: r.hex }}>
-          <Counter to={step.progress} suffix="%" duration={1.2} />
-        </p>
-        <div className="mt-2"><Bar value={step.progress} color={r.hex} bg="rgba(255,255,255,.1)" /></div>
-      </Panel>
-      <Panel>
-        <div className="grid sm:grid-cols-2 gap-2">
-          {details.map((d, i) => (
-            <motion.div key={d} initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.1 }}
-              className="flex items-center gap-2 text-[0.8rem] text-slate-300">
-              <Check size={13} style={{ color: r.hex }} strokeWidth={3} />{d}
-            </motion.div>
-          ))}
-        </div>
-      </Panel>
-    </div>
-  );
-}
-
-function ImpactStage() {
-  return (
-    <div>
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-        {IMPACT.map((m, i) => (
-          <motion.div key={m.label} initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.09 }}>
-            <Panel>
-              <p className="font-display text-2xl font-extrabold" style={{ color: '#6ee7b7' }}>
-                <Counter to={m.value} decimals={m.value % 1 !== 0 ? 1 : 0} suffix={m.unit} />
-              </p>
-              <p className="text-[0.72rem] text-slate-400 font-semibold mt-0.5">{m.label}</p>
-            </Panel>
-          </motion.div>
-        ))}
-      </div>
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.7 }}
-        className="mt-4 rounded-2xl p-4 text-center" style={{ background: 'linear-gradient(120deg,#05966955,#0891b255)', border: '1px solid rgba(255,255,255,.14)' }}>
-        <p className="font-display font-bold text-lg">One citizen&apos;s problem became a district-level solution.</p>
-        <p className="text-[0.84rem] text-slate-300 mt-1">
-          Reported by a farmer · validated by government · built by students · funded by industry · owned by the community.
-        </p>
-      </motion.div>
     </div>
   );
 }
@@ -606,13 +893,14 @@ function PresentationMode({ open, onClose }) {
     });
   };
 
-  const STEPS = ['AI analysis', 'Government validation', 'University accepts', 'Team formed', 'Proposal published', 'Industry joins', 'Prototype', 'Testing', 'Pilot', 'Deployment', 'Impact measured'];
+  const STEPS = ['AI analysis', 'Government validation', 'University accepts', 'Team formed', 'Proposal published',
+    'Industry joins', 'Prototype', 'Testing', 'Pilot', 'Deployment', 'Impact measured'];
   const doneCount = Math.round((progress / 100) * STEPS.length);
 
   return (
     <Modal open={open} onClose={onClose} accent="#4f46e5" width="max-w-2xl"
       title="Presentation mode" subtitle="Run one real challenge through the entire ecosystem — all four dashboards update live">
-      <div className="space-y-4 text-slate-800">
+      <div className="space-y-4">
         <div>
           <label className="label">Choose a challenge to drive</label>
           <select className="field" value={chosen?.id ?? ''} onChange={(e) => setTarget(e.target.value)} disabled={running}>
@@ -621,16 +909,16 @@ function PresentationMode({ open, onClose }) {
           {!candidates.length && <p className="text-[0.78rem] text-slate-500 mt-2">All challenges have already progressed. Reset the demo data to run again.</p>}
         </div>
 
-        <div className="rounded-xl bg-slate-50 p-4">
+        <div className="rounded-xl p-4" style={{ background: 'var(--surface-2)' }}>
           <div className="flex items-center justify-between mb-2">
             <p className="text-[0.78rem] font-bold text-slate-600">Scenario progress</p>
-            <p className="text-[0.78rem] font-bold text-indigo-600">{progress}%</p>
+            <p className="text-[0.78rem] font-bold text-indigo-500">{progress}%</p>
           </div>
           <Bar value={progress} color="#4f46e5" />
           <div className="grid sm:grid-cols-2 gap-1.5 mt-3">
             {STEPS.map((s, i) => (
               <div key={s} className={cx('flex items-center gap-2 text-[0.76rem] transition',
-                i < doneCount ? 'text-emerald-600 font-semibold' : 'text-slate-400')}>
+                i < doneCount ? 'text-emerald-500 font-semibold' : 'text-slate-400')}>
                 {i < doneCount ? <Check size={12} strokeWidth={3} /> : <span className="w-3 h-3 rounded-full border border-slate-300" />}
                 {s}
               </div>

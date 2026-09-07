@@ -4,7 +4,7 @@ import { ShieldAlert, ArrowLeft, LayoutDashboard } from 'lucide-react';
 import { ROLES, getRolePortalPath } from '../../data/constants';
 
 export default function ProtectedRoute({ children, allowedRoles }) {
-  const { user, profile, role, loading, isDemoMode } = useAuth();
+  const { user, profile, role, loading, isDemoMode, loginAsDemoRole } = useAuth();
   const location = useLocation();
 
   if (loading) {
@@ -51,6 +51,15 @@ export default function ProtectedRoute({ children, allowedRoles }) {
               You are currently authenticated as a <b className="text-slate-800">{userRoleMeta.label}</b>, but this section is designated for <b className="text-slate-800">{targetRoleMeta.label}</b> personnel.
             </p>
           </div>
+
+          {isDemoMode && (
+            <button
+              onClick={() => loginAsDemoRole(allowedRoles[0])}
+              className="btn btn-primary w-full justify-center"
+            >
+              Continue as {targetRoleMeta.label} (demo)
+            </button>
+          )}
 
           <div className="pt-2 flex flex-col gap-2">
             <Link

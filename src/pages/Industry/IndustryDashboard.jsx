@@ -11,6 +11,7 @@ import { StageBadge } from '../../components/workflow/Lifecycle';
 import { Stat, Chip, Modal, SearchInput, Select, Empty, Counter, Bar, ScoreRing, Reveal, Tabs } from '../../components/shared/ui';
 import { VBar, CategoryDonut, FitRadar } from '../../components/charts/Charts';
 import { usePlatform } from '../../context/PlatformContext';
+import { useShell } from '../../context/AppShellContext';
 import { INDUSTRIES } from '../../data/industries';
 import { CATEGORY_KEYS, ROLES, STAGE_INDEX, STAGES, SUPPORT_TYPES, catMeta } from '../../data/constants';
 import { matchIndustries } from '../../services/aiEngine';
@@ -35,12 +36,12 @@ export default function IndustryDashboard() {
   )), [challenges]);
 
   const nav = [
-    { to: '/industry', label: 'Overview', icon: 'LayoutDashboard', end: true },
-    { to: '/industry/scalable-ready', label: 'Scalable Prototypes', icon: 'Rocket', badge: scalableReady.length },
-    { to: '/industry/opportunities', label: 'Proposals & Needs', icon: 'Sparkles', badge: opportunities.filter((o) => o.c.industryNeed?.open).length },
-    { to: '/industry/portfolio', label: 'My Portfolio', icon: 'Briefcase', badge: portfolio.length },
-    { to: '/industry/milestones', label: 'Milestones', icon: 'ListChecks' },
-    { to: '/industry/impact', label: 'CSR Impact', icon: 'TrendingUp' },
+    { to: '/industry', key: 'common.overview', label: 'Overview', icon: 'LayoutDashboard', end: true },
+    { to: '/industry/scalable-ready', key: 'industry.nav.scalable', label: 'Scalable Prototypes', icon: 'Rocket', badge: scalableReady.length },
+    { to: '/industry/opportunities', key: 'industry.nav.opportunities', label: 'Proposals & Needs', icon: 'Sparkles', badge: opportunities.filter((o) => o.c.industryNeed?.open).length },
+    { to: '/industry/portfolio', key: 'industry.nav.portfolio', label: 'My Portfolio', icon: 'Briefcase', badge: portfolio.length },
+    { to: '/industry/milestones', key: 'common.milestones', label: 'Milestones', icon: 'ListChecks' },
+    { to: '/industry/impact', key: 'industry.nav.impact', label: 'CSR Impact', icon: 'TrendingUp' },
   ];
 
   return (
@@ -74,6 +75,7 @@ function FirmSwitcher() {
 /* ── Overview ───────────────────────────────────────────────────────── */
 function Overview({ firm, opportunities, portfolio }) {
   const nav = useNavigate();
+  const { t } = useShell();
   const [open, setOpen] = useState(null);
   const beneficiaries = portfolio.reduce((s, c) => s + (c.impact?.beneficiaries ?? 0), 0);
 
@@ -83,7 +85,7 @@ function Overview({ firm, opportunities, portfolio }) {
         <motion.div className="absolute -right-12 -top-16 w-56 h-56 rounded-full bg-white/10 anim-float" />
         <div className="relative flex flex-col sm:flex-row gap-4 sm:items-center justify-between">
           <div>
-            <p className="text-[0.72rem] font-bold uppercase tracking-widest opacity-80">CSR & innovation pipeline</p>
+            <p className="text-[0.72rem] font-bold uppercase tracking-widest opacity-80">{t('industry.hero.eyebrow')}</p>
             <h2 className="font-display text-2xl sm:text-3xl font-extrabold mt-1">
               {opportunities.filter((o) => o.c.industryNeed?.open).length} validated projects need your support
             </h2>
@@ -92,7 +94,7 @@ function Overview({ firm, opportunities, portfolio }) {
             </div>
           </div>
           <button className="btn bg-white text-orange-700 hover:bg-white/90 px-5 py-3 shrink-0" onClick={() => nav('/industry/opportunities')}>
-            <Sparkles size={16} />View AI recommendations
+            <Sparkles size={16} />{t('industry.hero.cta')}
           </button>
         </div>
       </div>

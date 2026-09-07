@@ -45,9 +45,11 @@ export default function Ecosystem({ size = 420, active }) {
               stroke={`url(#lg-${n.key})`} strokeWidth={cur === n.key ? 1.1 : 0.6} strokeLinecap="round"
               initial={{ pathLength: 0, opacity: 0 }} animate={{ pathLength: 1, opacity: 1 }}
               transition={{ duration: 1, delay: 0.4 + i * 0.15 }} />
-            <motion.circle cx={50} cy={50} r="1.15" fill={ROLES[n.key].hex}
-              animate={{ cx: [50, n.x, 50], cy: [50, n.y, 50], opacity: [0, 1, 0] }}
-              transition={{ duration: 3.4, repeat: Infinity, delay: i * 0.85, ease: 'easeInOut' }} />
+            <motion.g
+              animate={{ x: [0, n.x - 50, 0], y: [0, n.y - 50, 0], opacity: [0, 1, 0] }}
+              transition={{ duration: 3.4, repeat: Infinity, delay: i * 0.85, ease: 'easeInOut' }}>
+              <circle cx={50} cy={50} r="1.15" fill={ROLES[n.key].hex} />
+            </motion.g>
           </g>
         ))}
 

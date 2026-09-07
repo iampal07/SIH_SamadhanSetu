@@ -35,10 +35,17 @@ export function Counter({ to = 0, decimals = 0, prefix = '', suffix = '', classN
   const spring = useSpring(mv, { duration: duration * 1000, bounce: 0 });
   const [txt, setTxt] = useState('0');
 
+  const fmt = (v) => Number(v).toLocaleString('en-IN', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+
   useEffect(() => { if (inView) mv.set(to); }, [inView, to, mv]);
-  useEffect(() => spring.on('change', (v) => {
-    setTxt(Number(v).toLocaleString('en-IN', { minimumFractionDigits: decimals, maximumFractionDigits: decimals }));
-  }), [spring, decimals]);
+  useEffect(() => spring.on('change', (v) => setTxt(fmt(v))), [spring, decimals]);
+
+  // Safety net: if animation frames never arrive (throttled tab, reduced motion,
+  // low-power device) snap to the final value so the number is never stuck at 0.
+  useEffect(() => {
+    const id = setTimeout(() => setTxt(fmt(to)), duration * 1000 + 600);
+    return () => clearTimeout(id);
+  }, [to, decimals, duration]);
 
   return <span ref={ref} className={className}>{prefix}{txt}{suffix}</span>;
 }
@@ -54,7 +61,7 @@ export function Chip({ children, color = '#64748b', bg, className = '', dot = fa
 }
 
 /* ── Progress bar ───────────────────────────────────────────────────── */
-export function Bar({ value = 0, color = '#4f46e5', height = 8, bg = '#eef2f7', delay = 0 }) {
+export function Bar({ value = 0, color = '#4f46e5', height = 8, bg = 'var(--surface-2)', delay = 0 }) {
   return (
     <div className="w-full rounded-full overflow-hidden" style={{ height, background: bg }}>
       <motion.div
@@ -76,7 +83,7 @@ export function ScoreRing({ value = 0, size = 72, stroke = 7, color = '#4f46e5',
   return (
     <div className="relative inline-flex items-center justify-center" style={{ width: size, height: size }}>
       <svg width={size} height={size} className="-rotate-90">
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#eef2f7" strokeWidth={stroke} />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--border)" strokeWidth={stroke} />
         <motion.circle
           cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth={stroke} strokeLinecap="round"
           strokeDasharray={c}
@@ -138,16 +145,17 @@ export function Modal({ open, onClose, title, subtitle, children, width = 'max-w
           className="fixed inset-0 z-[100] flex items-start sm:items-center justify-center p-3 sm:p-6 overflow-y-auto"
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
         >
-          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={onClose} />
+          <div className="fixed inset-0 backdrop-blur-sm" style={{ background: 'var(--scrim)' }} onClick={onClose} />
           <motion.div
-            className={cx('relative w-full bg-white rounded-2xl shadow-2xl my-auto', width)}
+            className={cx('relative w-full rounded-2xl shadow-2xl my-auto', width)}
+            style={{ background: 'var(--surface)' }}
             initial={{ opacity: 0, scale: 0.96, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.97, y: 10 }}
             transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
           >
             <div className="h-1.5 rounded-t-2xl" style={{ background: `linear-gradient(90deg, ${accent}, ${accent}55)` }} />
-            <div className="flex items-start justify-between gap-4 px-5 sm:px-6 pt-4 pb-3 border-b border-slate-100">
+            <div className="flex items-start justify-between gap-4 px-5 sm:px-6 pt-4 pb-3 border-b" style={{ borderColor: 'var(--border)' }}>
               <div>
                 <h3 className="font-display text-lg font-bold text-slate-900">{title}</h3>
                 {subtitle && <p className="text-xs text-slate-500 mt-0.5">{subtitle}</p>}
@@ -225,7 +233,7 @@ export function Empty({ icon: Icon, title, sub, action }) {
   return (
     <div className="py-14 text-center">
       {Icon && (
-        <div className="w-14 h-14 mx-auto rounded-2xl bg-slate-50 grid place-items-center text-slate-300 mb-3">
+        <div className="w-14 h-14 mx-auto rounded-2xl grid place-items-center text-slate-300 mb-3" style={{ background: 'var(--surface-2)' }}>
           <Icon size={26} />
         </div>
       )}
@@ -238,7 +246,7 @@ export function Empty({ icon: Icon, title, sub, action }) {
 
 export function Tabs({ tabs, active, onChange, accent = '#4f46e5' }) {
   return (
-    <div className="flex gap-1 p-1 bg-slate-100/80 rounded-xl overflow-x-auto no-scrollbar">
+    <div className="flex gap-1 p-1 rounded-xl overflow-x-auto no-scrollbar" style={{ background: 'var(--surface-2)' }}>
       {tabs.map((t) => {
         const key = typeof t === 'string' ? t : t.key;
         const label = typeof t === 'string' ? t : t.label;

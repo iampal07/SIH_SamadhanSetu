@@ -8,6 +8,7 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { DISTRICT_NAMES, ROLES, getRolePortalPath } from '../../data/constants';
 import { Logo } from '../../components/navigation/PublicNav';
+import ShellControls from '../../components/shared/ShellControls';
 
 const ROLE_OPTIONS = [
   { id: 'citizen', label: 'Citizen', icon: Users, desc: 'Report issues' },
@@ -92,18 +93,22 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col justify-between bg-[#f8fafc] text-slate-800">
+    <div className="min-h-screen flex flex-col justify-between text-slate-800" style={{ background: 'var(--bg)' }}>
       {/* Top Header */}
       <header className="p-4 sm:p-6 max-w-7xl mx-auto w-full flex items-center justify-between">
         <Logo />
-        <Link to="/" className="text-sm font-semibold text-slate-500 hover:text-indigo-600 transition flex items-center gap-1.5">
-          Back to Public Site <ArrowRight size={14} />
-        </Link>
+        <div className="flex items-center gap-3">
+          <ShellControls compact />
+          <Link to="/" className="text-sm font-semibold text-slate-500 hover:text-indigo-600 transition flex items-center gap-1.5">
+            Back to Public Site <ArrowRight size={14} />
+          </Link>
+        </div>
       </header>
 
       {/* Main Container */}
       <main className="flex-1 flex items-center justify-center p-4 sm:p-6 my-4">
-        <div className="max-w-4xl w-full grid md:grid-cols-[1.2fr_1fr] bg-white rounded-3xl shadow-xl shadow-slate-200/60 border border-slate-100 overflow-hidden">
+        <div className="max-w-4xl w-full grid md:grid-cols-[1.2fr_1fr] rounded-3xl shadow-xl border overflow-hidden"
+          style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
           
           {/* Left Panel: Auth Action */}
           <div className="p-6 sm:p-10 flex flex-col justify-between">
