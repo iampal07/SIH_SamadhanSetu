@@ -148,7 +148,7 @@ export function Modal({ open, onClose, title, subtitle, children, width = 'max-w
           <div className="fixed inset-0 backdrop-blur-sm" style={{ background: 'var(--scrim)' }} onClick={onClose} />
           <motion.div
             className={cx('relative w-full rounded-2xl shadow-2xl my-auto', width)}
-            style={{ background: 'var(--surface)' }}
+            style={{ background: 'var(--surface-raised)' }}
             initial={{ opacity: 0, scale: 0.96, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.97, y: 10 }}
@@ -208,11 +208,11 @@ export function Toasts({ toast, onDone }) {
 }
 
 /* ── Search / filter bar ────────────────────────────────────────────── */
-export function SearchInput({ value, onChange, placeholder = 'Search…', className = '' }) {
+export function SearchInput({ value, onChange, placeholder, className = '' }) {
   return (
     <div className={cx('relative', className)}>
       <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-      <input className="field pl-9" value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} />
+      <input className="field pl-9" value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder ?? '…'} />
     </div>
   );
 }

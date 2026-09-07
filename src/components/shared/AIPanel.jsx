@@ -5,9 +5,11 @@ import { AI_STEPS } from '../../services/aiEngine';
 import { catMeta, ROLES } from '../../data/constants';
 import { Bar, ScoreRing, Chip, Counter } from './ui';
 import { priorityTone, cx } from '../../utils/format';
+import { useShell } from '../../context/AppShellContext';
 
 /* ── Animated "AI is thinking" panel ────────────────────────────────── */
 export function AIProcessing({ onDone, duration = 2600, compact = false }) {
+  const { t } = useShell();
   const [step, setStep] = useState(0);
   useEffect(() => {
     const per = duration / AI_STEPS.length;
@@ -22,7 +24,7 @@ export function AIProcessing({ onDone, duration = 2600, compact = false }) {
 
   return (
     <div className={cx('rounded-2xl p-5 relative overflow-hidden', compact ? '' : 'py-8')}
-      style={{ background: 'linear-gradient(135deg,#f5f3ff,#eef2ff 60%,#ecfeff)' }}>
+      style={{ background: 'var(--tint-ai)' }}>
       <motion.div className="absolute -right-10 -top-10 w-40 h-40 rounded-full blur-2xl"
         style={{ background: '#a78bfa55' }}
         animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0.8, 0.5] }} transition={{ duration: 3, repeat: Infinity }} />
@@ -36,8 +38,8 @@ export function AIProcessing({ onDone, duration = 2600, compact = false }) {
           </motion.div>
         </div>
         <div>
-          <p className="font-display font-bold text-slate-900">AI engine analysing challenge</p>
-          <p className="text-xs text-slate-500 mt-0.5">Classification · Priority · Duplicates · Matching</p>
+          <p className="font-display font-bold text-slate-900">{t('ai.processing')}</p>
+          <p className="text-xs text-slate-500 mt-0.5">{t('ai.processingSub')}</p>
         </div>
         <div className="w-full max-w-sm space-y-1.5 mt-1">
           {AI_STEPS.map((s, i) => (
@@ -59,7 +61,7 @@ export function AIProcessing({ onDone, duration = 2600, compact = false }) {
           ))}
         </div>
         <div className="w-full max-w-sm mt-1">
-          <div className="h-1.5 rounded-full bg-white/70 overflow-hidden">
+          <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--surface-2)' }}>
             <motion.div className="h-full rounded-full"
               style={{ background: 'linear-gradient(90deg,#8b5cf6,#06b6d4)' }}
               animate={{ width: `${((step + 1) / AI_STEPS.length) * 100}%` }} transition={{ duration: 0.4 }} />
@@ -72,15 +74,16 @@ export function AIProcessing({ onDone, duration = 2600, compact = false }) {
 
 /* ── Classification result ──────────────────────────────────────────── */
 export function AIClassification({ ai }) {
+  const { t } = useShell();
   const cat = catMeta(ai.category);
   return (
     <div className="card p-4">
-      <Header icon={Sparkles} title="AI Classification" tag="Model: SamadhanNLP v2.4" />
+      <Header icon={Sparkles} title={t('ai.classification')} tag={t('ai.model')} />
       <div className="flex items-center gap-4 mt-3">
-        <ScoreRing value={ai.classification.confidence} color={cat.hex} size={68} sub="confidence" />
+        <ScoreRing value={ai.classification.confidence} color={cat.hex} size={68} sub={t('ai.confidence')} />
         <div className="min-w-0">
-          <div className="font-display text-lg font-extrabold" style={{ color: cat.hex }}>{ai.category}</div>
-          <p className="text-[0.72rem] text-slate-500 mt-0.5">Auto-assigned domain from submission text</p>
+          <div className="font-display text-lg font-extrabold" style={{ color: cat.hex }}>{t(`cat.${ai.category}`, ai.category)}</div>
+          <p className="text-[0.72rem] text-slate-500 mt-0.5">{t('ai.autoDomain')}</p>
           {ai.classification.keywords?.length > 0 && (
             <div className="flex flex-wrap gap-1 mt-2">
               {ai.classification.keywords.map((k) => <Chip key={k} color="#64748b">{k}</Chip>)}
@@ -90,10 +93,10 @@ export function AIClassification({ ai }) {
       </div>
       {ai.classification.alternates?.length > 0 && (
         <div className="mt-3 pt-3 border-t border-slate-100 space-y-2">
-          <p className="text-[0.7rem] font-bold text-slate-400 uppercase tracking-wide">Alternate domains considered</p>
+          <p className="text-[0.7rem] font-bold text-slate-400 uppercase tracking-wide">{t('ai.alternates')}</p>
           {ai.classification.alternates.map((a) => (
             <div key={a.category} className="flex items-center gap-2">
-              <span className="text-[0.75rem] text-slate-600 w-40 truncate">{a.category}</span>
+              <span className="text-[0.75rem] text-slate-600 w-40 truncate">{t(`cat.${a.category}`, a.category)}</span>
               <Bar value={a.confidence} color={catMeta(a.category).hex} height={5} />
               <span className="text-[0.7rem] font-semibold text-slate-400 w-8 text-right">{a.confidence}%</span>
             </div>
@@ -106,29 +109,30 @@ export function AIClassification({ ai }) {
 
 /* ── Priority scoring ───────────────────────────────────────────────── */
 export function AIPriority({ priority }) {
-  const t = priorityTone(priority.level);
+  const { t } = useShell();
+  const tone = priorityTone(priority.level);
   const factors = [
-    ['Urgency', priority.factors.urgency],
-    ['Population affected', priority.factors.population],
-    ['Severity', priority.factors.severity],
-    ['Geographic impact', priority.factors.geographic],
-    ['Feasibility', priority.factors.feasibility],
+    [t('ai.f.urgency'), priority.factors.urgency],
+    [t('ai.f.population'), priority.factors.population],
+    [t('ai.f.severity'), priority.factors.severity],
+    [t('ai.f.geographic'), priority.factors.geographic],
+    [t('ai.f.feasibility'), priority.factors.feasibility],
   ];
   return (
     <div className="card p-4">
-      <Header icon={Gauge} title="AI Priority Score" tag="Weighted multi-factor model" />
+      <Header icon={Gauge} title={t('ai.priority')} tag={t('ai.priorityTag')} />
       <div className="flex items-center gap-4 mt-3">
-        <div className="rounded-2xl px-4 py-3 text-center" style={{ background: t.bg }}>
-          <div className="font-display text-3xl font-extrabold" style={{ color: t.fg }}>
+        <div className="rounded-2xl px-4 py-3 text-center" style={{ background: tone.bg }}>
+          <div className="font-display text-3xl font-extrabold" style={{ color: tone.fg }}>
             <Counter to={priority.score} />
           </div>
-          <div className="text-[0.65rem] font-bold tracking-wider" style={{ color: t.fg }}>/ 100 · {priority.level}</div>
+          <div className="text-[0.65rem] font-bold tracking-wider" style={{ color: tone.fg }}>/ 100 · {t(`priority.${priority.level}`, priority.level)}</div>
         </div>
         <div className="flex-1 space-y-1.5">
           {factors.map(([label, v], i) => (
             <div key={label} className="flex items-center gap-2">
               <span className="text-[0.72rem] text-slate-500 w-32 shrink-0">{label}</span>
-              <Bar value={v} color={t.dot} height={5} delay={i * 0.08} />
+              <Bar value={v} color={tone.dot} height={5} delay={i * 0.08} />
               <span className="text-[0.68rem] font-bold text-slate-400 w-7 text-right">{v}</span>
             </div>
           ))}
@@ -140,12 +144,13 @@ export function AIPriority({ priority }) {
 
 /* ── Duplicate detection ────────────────────────────────────────────── */
 export function AIDuplicates({ duplicates = [], onOpen }) {
+  const { t } = useShell();
   return (
     <div className="card p-4">
-      <Header icon={Copy} title="Duplicate & Similarity Detection"
-        tag={`${duplicates.length} similar challenge${duplicates.length === 1 ? '' : 's'} found`} />
+      <Header icon={Copy} title={t('ai.duplicates')}
+        tag={t('ai.duplicatesTag', '{n} similar found', { n: duplicates.length })} />
       {duplicates.length === 0 ? (
-        <p className="text-[0.8rem] text-slate-400 mt-3">No similar challenge above the 55% similarity threshold. This is a unique submission.</p>
+        <p className="text-[0.8rem] text-slate-400 mt-3">{t('ai.noDuplicates')}</p>
       ) : (
         <div className="mt-3 space-y-2">
           {duplicates.map((d, i) => (
@@ -170,12 +175,13 @@ export function AIDuplicates({ duplicates = [], onOpen }) {
 
 /* ── Match list (universities / industries) ─────────────────────────── */
 export function MatchList({ kind = 'university', matches = [], onSelect, selectedId, actionLabel, disabled }) {
+  const { t } = useShell();
   const role = kind === 'university' ? ROLES.varsity : ROLES.industry;
   const Icon = kind === 'university' ? GraduationCap : Factory;
   return (
     <div className="card p-4">
-      <Header icon={Icon} title={kind === 'university' ? 'AI University Recommendations' : 'AI Industry Recommendations'}
-        tag={kind === 'university' ? 'Research fit · Departments · Location · Track record' : 'Domain · Technology · CSR · Funding capacity'} />
+      <Header icon={Icon} title={kind === 'university' ? t('ai.uniMatch') : t('ai.indMatch')}
+        tag={kind === 'university' ? t('ai.uniMatchTag') : t('ai.indMatchTag')} />
       <div className="mt-3 space-y-2.5">
         {matches.map((m, i) => (
           <motion.div key={m.id}
@@ -189,7 +195,7 @@ export function MatchList({ kind = 'university', matches = [], onSelect, selecte
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 flex-wrap">
                   <p className="font-display font-bold text-[0.9rem] text-slate-900">{m.name}</p>
-                  {i === 0 && <Chip color={role.hex} bg={role.soft}>Best match</Chip>}
+                  {i === 0 && <Chip color={role.hex} bg={role.soft}>{t('ai.bestMatch')}</Chip>}
                 </div>
                 <p className="text-[0.7rem] text-slate-400">{m.type} · {m.district ?? m.hq}</p>
                 <ul className="mt-1.5 space-y-0.5">
@@ -203,7 +209,7 @@ export function MatchList({ kind = 'university', matches = [], onSelect, selecte
               {onSelect && (
                 <button className="btn btn-sm shrink-0 text-white" style={{ background: role.hex }}
                   disabled={disabled} onClick={() => onSelect(m)}>
-                  {actionLabel ?? 'Select'}
+                  {actionLabel ?? t('common.select', 'Select')}
                 </button>
               )}
             </div>
@@ -216,10 +222,11 @@ export function MatchList({ kind = 'university', matches = [], onSelect, selecte
 
 /* ── Multidisciplinary composition visual ───────────────────────────── */
 export function DisciplineWeb({ disciplines = [], category }) {
+  const { t } = useShell();
   const cat = catMeta(category);
   return (
     <div className="card p-4">
-      <Header icon={Layers} title="AI Multidisciplinary Composition" tag="Recommended disciplines for this problem" />
+      <Header icon={Layers} title={t('ai.disciplines')} tag={t('ai.disciplinesTag')} />
       <div className="relative mt-4 flex flex-wrap items-center justify-center gap-2">
         {disciplines.map((d, i) => (
           <motion.span key={d}
@@ -235,7 +242,7 @@ export function DisciplineWeb({ disciplines = [], category }) {
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}
           className="text-[0.7rem] font-bold px-3 py-1.5 rounded-full text-white"
           style={{ background: `linear-gradient(90deg, ${cat.hex}, #6366f1)` }}>
-          → One multidisciplinary team
+          {t('ai.oneTeam')}
         </motion.div>
       </div>
     </div>
@@ -246,7 +253,7 @@ function Header({ icon: Icon, title, tag }) {
   return (
     <div className="flex items-start gap-2.5">
       <div className="w-8 h-8 rounded-lg grid place-items-center shrink-0"
-        style={{ background: 'linear-gradient(135deg,#ede9fe,#e0e7ff)', color: '#7c3aed' }}>
+        style={{ background: 'var(--tint-ai)', color: 'var(--on-ai)' }}>
         <Icon size={16} strokeWidth={2.3} />
       </div>
       <div className="min-w-0">

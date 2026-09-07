@@ -16,7 +16,6 @@ import { INDUSTRIES } from '../../data/industries';
 import { CATEGORY_KEYS, ROLES, STAGE_INDEX, STAGES, SUPPORT_TYPES, catMeta } from '../../data/constants';
 import { matchIndustries } from '../../services/aiEngine';
 import { timeAgo, fmtFull, cx } from '../../utils/format';
-import { insertIndustryCommitmentInDb, updateChallengeInDb } from '../../services/db';
 
 const R = ROLES.industry;
 
@@ -87,10 +86,10 @@ function Overview({ firm, opportunities, portfolio }) {
           <div>
             <p className="text-[0.72rem] font-bold uppercase tracking-widest opacity-80">{t('industry.hero.eyebrow')}</p>
             <h2 className="font-display text-2xl sm:text-3xl font-extrabold mt-1">
-              {opportunities.filter((o) => o.c.industryNeed?.open).length} validated projects need your support
+              {t('industry.needSupport', '', { n: opportunities.filter((o) => o.c.industryNeed?.open).length })}
             </h2>
             <div className="flex flex-wrap gap-1.5 mt-3">
-              {firm.domains.map((d) => <span key={d} className="chip bg-white/15 text-white">{d}</span>)}
+              {firm.domains.map((d) => <span key={d} className="chip bg-white/15 text-white">{t(`cat.${d}`, d)}</span>)}
             </div>
           </div>
           <button className="btn bg-white text-orange-700 hover:bg-white/90 px-5 py-3 shrink-0" onClick={() => nav('/industry/opportunities')}>
@@ -100,19 +99,19 @@ function Overview({ firm, opportunities, portfolio }) {
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Stat icon={Icons.Sparkles} label="Matched opportunities" value={opportunities.length} color={R.hex} />
-        <Stat icon={Icons.Briefcase} label="Projects supported" value={portfolio.length} color="#6366f1" delay={0.08} />
-        <Stat icon={Icons.CheckCircle2} label="Deployed solutions" value={portfolio.filter((c) => STAGE_INDEX[c.status] >= STAGE_INDEX.deployment).length} color="#059669" delay={0.16} />
-        <Stat icon={Icons.HeartHandshake} label="Lives impacted" value={beneficiaries} color="#0891b2" delay={0.24} />
+        <Stat icon={Icons.Sparkles} label={t('Matched opportunities')} value={opportunities.length} color={R.hex} />
+        <Stat icon={Icons.Briefcase} label={t('Projects supported')} value={portfolio.length} color="#6366f1" delay={0.08} />
+        <Stat icon={Icons.CheckCircle2} label={t('Deployed solutions')} value={portfolio.filter((c) => STAGE_INDEX[c.status] >= STAGE_INDEX.deployment).length} color="#059669" delay={0.16} />
+        <Stat icon={Icons.HeartHandshake} label={t('Lives impacted')} value={beneficiaries} color="#0891b2" delay={0.24} />
       </div>
 
       <div className="grid lg:grid-cols-2 gap-4">
         <div className="card p-5">
           <div className="flex items-center justify-between mb-3">
-            <p className="font-display font-bold text-slate-900">Top AI-recommended projects</p>
-            <button className="btn btn-ghost btn-sm" onClick={() => nav('/industry/opportunities')}>View all</button>
+            <p className="font-display font-bold text-slate-900">{t('Top AI-recommended projects')}</p>
+            <button className="btn btn-ghost btn-sm" onClick={() => nav('/industry/opportunities')}>{t('common.viewAll')}</button>
           </div>
-          {opportunities.length === 0 ? <Empty icon={Icons.Sparkles} title="No open projects right now" sub="New university proposals appear here automatically." />
+          {opportunities.length === 0 ? <Empty icon={Icons.Sparkles} title={t('No open projects right now')} sub={t('New university proposals appear here automatically.')} />
             : (
               <div className="space-y-3">
                 {opportunities.slice(0, 3).map(({ c, score }) => (
@@ -134,8 +133,8 @@ function Overview({ firm, opportunities, portfolio }) {
         </div>
 
         <div className="card p-5">
-          <p className="font-display font-bold text-slate-900 mb-1">Capability profile</p>
-          <p className="text-[0.76rem] text-slate-400 mb-2">How the AI scores your fit against incoming projects</p>
+          <p className="font-display font-bold text-slate-900 mb-1">{t('Capability profile')}</p>
+          <p className="text-[0.76rem] text-slate-400 mb-2">{t('How the AI scores your fit against incoming projects')}</p>
           <FitRadar color={R.hex} data={[
             { axis: 'Domain', value: 92 },
             { axis: 'Technology', value: 86 },
@@ -156,6 +155,7 @@ function Overview({ firm, opportunities, portfolio }) {
 
 /* ── Opportunities ──────────────────────────────────────────────────── */
 function Opportunities({ firm, opportunities }) {
+  const { t } = useShell();
   const [open, setOpen] = useState(null);
   const [joinFor, setJoinFor] = useState(null);
   const [q, setQ] = useState('');
@@ -171,15 +171,16 @@ function Opportunities({ firm, opportunities }) {
   return (
     <div className="space-y-4">
       <div className="card p-4 flex flex-wrap gap-3 items-center">
-        <SearchInput value={q} onChange={setQ} placeholder="Search university projects…" className="flex-1 min-w-[220px]" />
-        <Select value={cat} onChange={setCat} options={['All', ...CATEGORY_KEYS]} className="w-auto" />
+        <SearchInput value={q} onChange={setQ} placeholder={t('Search university projects…')} className="flex-1 min-w-[220px]" />
+        <Select value={cat} onChange={setCat} className="w-auto"
+          options={[{ value: 'All', label: t('common.all') }, ...CATEGORY_KEYS.map((c) => ({ value: c, label: t(`cat.${c}`, c) }))]} />
         <button className={cx('btn btn-sm', onlyOpen ? 'text-white' : 'btn-ghost')} style={onlyOpen ? { background: R.hex } : undefined}
-          onClick={() => setOnlyOpen((o) => !o)}>Needs support only</button>
+          onClick={() => setOnlyOpen((o) => !o)}>{t('Needs support only')}</button>
         <Chip color={R.hex} bg={R.soft}>{list.length} projects</Chip>
       </div>
 
       {list.length === 0 ? (
-        <Empty icon={Icons.Sparkles} title="Nothing matches right now" sub="Try clearing the filters or another domain." />
+        <Empty icon={Icons.Sparkles} title={t('Nothing matches right now')} sub={t('Try clearing the filters or another domain.')} />
       ) : (
         <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
           <AnimatePresence>
@@ -187,10 +188,10 @@ function Opportunities({ firm, opportunities }) {
               <ChallengeCard key={c.id} challenge={c} index={i} onOpen={setOpen} accent={R.hex}
                 actions={(
                   <>
-                    <Chip color={R.deep} bg={R.soft}>AI fit {score}%</Chip>
+                    <Chip color={R.deep} bg={R.soft}>{t('common.aiFit', '', { n: score })}</Chip>
                     {c.industryNeed?.open
                       ? <button className="btn btn-sm text-white" style={{ background: R.hex }} onClick={() => setJoinFor(c)}><Handshake size={13} />Support</button>
-                      : <Chip color="#059669" bg="#ecfdf5"><Check size={11} />Partner joined</Chip>}
+                      : <Chip color="#059669" bg="#ecfdf5"><Check size={11} />{t('Partner joined')}</Chip>}
                   </>
                 )} />
             ))}
@@ -208,6 +209,7 @@ function Opportunities({ firm, opportunities }) {
 }
 
 function JoinModal({ challenge, firm, onClose }) {
+  const { t } = useShell();
   const { dispatch, toast } = usePlatform();
   const [supports, setSupports] = useState(firm.supports.slice(0, 3));
   const [amount, setAmount] = useState('₹18,50,000');
@@ -221,18 +223,18 @@ function JoinModal({ challenge, firm, onClose }) {
 
   return (
     <Modal open={open} onClose={onClose} accent={R.hex} width="max-w-xl"
-      title="Offer industry support" subtitle={challenge ? `${challenge.code} · ${challenge.title}` : ''}>
+      title={t('Offer industry support')} subtitle={challenge ? `${challenge.code} · ${challenge.title}` : ''}>
       {challenge && (
         <div className="space-y-4">
           <div className="rounded-xl p-3.5" style={{ background: R.soft }}>
-            <p className="text-[0.78rem] font-bold" style={{ color: R.deep }}>University request</p>
+            <p className="text-[0.78rem] font-bold" style={{ color: R.deep }}>{t('University request')}</p>
             <p className="text-[0.82rem] text-slate-600 mt-1">{challenge.industryNeed?.note}</p>
             <div className="flex flex-wrap gap-1.5 mt-2">
               {(challenge.industryNeed?.needs ?? []).map((n) => <Chip key={n} color={R.deep} bg="#fff">{n}</Chip>)}
             </div>
           </div>
           <div>
-            <label className="label">What will you provide?</label>
+            <label className="label">{t('What will you provide?')}</label>
             <div className="flex flex-wrap gap-1.5">
               {SUPPORT_TYPES.map((s) => {
                 const on = supports.includes(s);
@@ -245,12 +247,12 @@ function JoinModal({ challenge, firm, onClose }) {
             </div>
           </div>
           <div>
-            <label className="label">Committed support value</label>
+            <label className="label">{t('Committed support value')}</label>
             <input className="field" value={amount} onChange={(e) => setAmount(e.target.value)} />
           </div>
           <div className="flex justify-end gap-2">
             <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
-            <button className="btn btn-primary" disabled={!supports.length} onClick={submit}><Handshake size={15} />Confirm partnership</button>
+            <button className="btn btn-primary" disabled={!supports.length} onClick={submit}><Handshake size={15} />{t('Confirm partnership')}</button>
           </div>
         </div>
       )}
@@ -260,6 +262,7 @@ function JoinModal({ challenge, firm, onClose }) {
 
 /* ── Portfolio ──────────────────────────────────────────────────────── */
 function Portfolio({ firm, portfolio }) {
+  const { t } = useShell();
   const { dispatch, toast } = usePlatform();
   const [open, setOpen] = useState(null);
 
@@ -268,7 +271,7 @@ function Portfolio({ firm, portfolio }) {
   return (
     <div className="space-y-4">
       {portfolio.length === 0 ? (
-        <Empty icon={Icons.Briefcase} title="Your portfolio is empty" sub="Support a validated university project to build your CSR portfolio." />
+        <Empty icon={Icons.Briefcase} title={t('Your portfolio is empty')} sub={t('Support a validated university project to build your CSR portfolio.')} />
       ) : (
         <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
           {portfolio.map((c, i) => {
@@ -297,8 +300,9 @@ function Portfolio({ firm, portfolio }) {
 
 /* ── Milestones ─────────────────────────────────────────────────────── */
 function Milestones({ portfolio }) {
+  const { t } = useShell();
   const withM = portfolio.filter((c) => c.milestones.length);
-  if (!withM.length) return <Empty icon={Icons.ListChecks} title="No milestones to track" sub="Milestones appear once you support a project with a published proposal." />;
+  if (!withM.length) return <Empty icon={Icons.ListChecks} title={t('No milestones to track')} sub={t('Milestones appear once you support a project with a published proposal.')} />;
   return (
     <div className="space-y-4">
       {withM.map((c, i) => (
@@ -318,6 +322,7 @@ function Milestones({ portfolio }) {
 
 /* ── CSR impact ─────────────────────────────────────────────────────── */
 function ImpactView({ firm, portfolio }) {
+  const { t } = useShell();
   const done = portfolio.filter((c) => c.impact);
   const beneficiaries = done.reduce((s, c) => s + c.impact.beneficiaries, 0);
   const byCat = useMemo(() => {
@@ -330,26 +335,26 @@ function ImpactView({ firm, portfolio }) {
     <div className="space-y-4">
       <div className="rounded-2xl p-6 text-white relative overflow-hidden" style={{ background: `linear-gradient(120deg,${R.hex},#b45309)` }}>
         <motion.div className="absolute -right-12 -bottom-16 w-56 h-56 rounded-full bg-white/10 anim-float" />
-        <p className="text-[0.72rem] font-bold uppercase tracking-widest opacity-80">Verified CSR impact</p>
+        <p className="text-[0.72rem] font-bold uppercase tracking-widest opacity-80">{t('Verified CSR impact')}</p>
         <p className="font-display text-4xl font-extrabold mt-1"><Counter to={beneficiaries} /></p>
         <p className="text-white/90 font-semibold">people reached through {done.length} deployed solution{done.length === 1 ? '' : 's'}</p>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Stat icon={Icons.Briefcase} label="Projects in portfolio" value={portfolio.length} color={R.hex} />
-        <Stat icon={Icons.Rocket} label="Reached pilot or beyond" value={portfolio.filter((c) => STAGE_INDEX[c.status] >= STAGE_INDEX.pilot).length} color="#6366f1" delay={0.08} />
-        <Stat icon={Icons.GraduationCap} label="University partners" value={new Set(portfolio.map((c) => c.university?.id).filter(Boolean)).size} color="#0891b2" delay={0.16} />
-        <Stat icon={Icons.MapPinned} label="Districts served" value={new Set(portfolio.map((c) => c.district)).size} color="#059669" delay={0.24} />
+        <Stat icon={Icons.Briefcase} label={t('Projects in portfolio')} value={portfolio.length} color={R.hex} />
+        <Stat icon={Icons.Rocket} label={t('Reached pilot or beyond')} value={portfolio.filter((c) => STAGE_INDEX[c.status] >= STAGE_INDEX.pilot).length} color="#6366f1" delay={0.08} />
+        <Stat icon={Icons.GraduationCap} label={t('University partners')} value={new Set(portfolio.map((c) => c.university?.id).filter(Boolean)).size} color="#0891b2" delay={0.16} />
+        <Stat icon={Icons.MapPinned} label={t('Districts served')} value={new Set(portfolio.map((c) => c.district)).size} color="#059669" delay={0.24} />
       </div>
 
       <div className="grid lg:grid-cols-2 gap-4">
         <div className="card p-5">
-          <p className="font-display font-bold text-slate-900 mb-2">Portfolio by domain</p>
-          {byCat.length ? <CategoryDonut data={byCat} /> : <Empty icon={Icons.PieChart} title="No portfolio data yet" />}
+          <p className="font-display font-bold text-slate-900 mb-2">{t('Portfolio by domain')}</p>
+          {byCat.length ? <CategoryDonut data={byCat} /> : <Empty icon={Icons.PieChart} title={t('No portfolio data yet')} />}
         </div>
         <div className="card p-5">
-          <p className="font-display font-bold text-slate-900 mb-2">Impact metrics from deployed solutions</p>
-          {done.length === 0 ? <Empty icon={Icons.TrendingUp} title="No deployed solutions yet" sub="Impact metrics appear after deployment." />
+          <p className="font-display font-bold text-slate-900 mb-2">{t('Impact metrics from deployed solutions')}</p>
+          {done.length === 0 ? <Empty icon={Icons.TrendingUp} title={t('No deployed solutions yet')} sub={t('Impact metrics appear after deployment.')} />
             : (
               <div className="space-y-4">
                 {done.map((c) => (
@@ -402,8 +407,6 @@ function ScalableReadyProjects({ firm, list }) {
     };
 
     // Save to Supabase Database
-    insertIndustryCommitmentInDb(commitmentPayload).catch((err) => console.warn('Supabase DB commitment note:', err));
-    updateChallengeInDb(selectedProto.id, { status: 'pilot' }).catch((err) => console.warn('Supabase DB challenge status update note:', err));
 
     dispatch({
       type: 'PLEDGE_SCALING_FUNDING',

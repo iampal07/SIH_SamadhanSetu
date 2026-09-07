@@ -40,6 +40,7 @@
   --bg-2: #eef2f9;
   --surface: #ffffff;
   --surface-2: #f8fafc;
+  --surface-raised: #ffffff;
   --surface-glass: rgba(255, 255, 255, 0.74);
   --border: #e8eef6;
   --border-strong: #dbe3ee;
@@ -50,37 +51,76 @@
   --ink: #0f172a;
   --muted: #64748b;
   --scrim: rgba(15, 23, 42, .38);
+
+  /* Stakeholder tints — surface + on-surface pairs */
+  --tint-citizen: #ecfeff;  --on-citizen: #0e7490;
+  --tint-varsity: #eef2ff;  --on-varsity: #4338ca;
+  --tint-industry: #fff7ed; --on-industry: #b45309;
+  --tint-govt: #ecfdf5;     --on-govt: #047857;
+  --tint-ai: #f5f3ff;       --on-ai: #6d28d9;
+
+  /* Priority tints */
+  --tint-critical: #fef2f2; --on-critical: #b91c1c;
+  --tint-high: #fff7ed;     --on-high: #c2410c;
+  --tint-medium: #fefce8;   --on-medium: #a16207;
+  --tint-low: #f0fdf4;      --on-low: #15803d;
+
+  /* Map */
+  --map-water-a: #dbeafe; --map-water-b: #cffafe;
+  --map-stroke: #ffffff;  --map-outline: #334155;
+  --map-empty: #e7ebf1;   --map-label: #0f172a; --map-label-halo: rgba(255,255,255,.92);
+
   color-scheme: light;
 }
 
 [data-theme="dark"] {
-  --bg: #070b14;
-  --bg-2: #0b1120;
-  --surface: #101828;
-  --surface-2: #162033;
-  --surface-glass: rgba(16, 24, 40, 0.72);
-  --border: #1f2a3d;
-  --border-strong: #2b3a52;
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, .4), 0 6px 18px -12px rgba(0, 0, 0, .7);
-  --shadow-md: 0 10px 34px -14px rgba(0, 0, 0, .8);
-  --shadow-lg: 0 24px 60px -24px rgba(0, 0, 0, .9);
-  --ring: rgba(129, 140, 248, .22);
-  --ink: #f1f5f9;
-  --muted: #94a3b8;
-  --scrim: rgba(2, 6, 16, .66);
+  /* Matte charcoal, layered — never pure black */
+  --bg: #14161a;
+  --bg-2: #191c21;
+  --surface: #1e2127;
+  --surface-2: #262a31;
+  --surface-raised: #272c34;
+  --surface-glass: rgba(30, 33, 39, 0.78);
+  --border: #2e333b;
+  --border-strong: #3d434d;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, .34), 0 6px 18px -12px rgba(0, 0, 0, .58);
+  --shadow-md: 0 12px 34px -16px rgba(0, 0, 0, .72);
+  --shadow-lg: 0 26px 60px -26px rgba(0, 0, 0, .82);
+  --ring: rgba(129, 140, 248, .26);
+  --ink: #e9ecf1;
+  --muted: #98a1af;
+  --scrim: rgba(10, 11, 14, .68);
+
+  /* Tints become low-alpha washes of the same brand hue; labels lighten. */
+  --tint-citizen: rgba(6, 182, 212, .16);   --on-citizen: #67e8f9;
+  --tint-varsity: rgba(99, 102, 241, .18);  --on-varsity: #a5b4fc;
+  --tint-industry: rgba(245, 158, 11, .16); --on-industry: #fcd34d;
+  --tint-govt: rgba(16, 185, 129, .16);     --on-govt: #6ee7b7;
+  --tint-ai: rgba(139, 92, 246, .18);       --on-ai: #c4b5fd;
+
+  --tint-critical: rgba(239, 68, 68, .16);  --on-critical: #fca5a5;
+  --tint-high: rgba(249, 115, 22, .16);     --on-high: #fdba74;
+  --tint-medium: rgba(234, 179, 8, .16);    --on-medium: #fde047;
+  --tint-low: rgba(34, 197, 94, .16);       --on-low: #86efac;
+
+  /* Map */
+  --map-water-a: #1f2937; --map-water-b: #1c2b33;
+  --map-stroke: #14161a;  --map-outline: #6b7480;
+  --map-empty: #2a2f37;   --map-label: #0f172a; --map-label-halo: rgba(255,255,255,.86);
+
   color-scheme: dark;
 
-  /* Remap the neutral scale so every existing slate-* utility flips automatically. */
-  --color-slate-50: #0e1626;
-  --color-slate-100: #17223a;
-  --color-slate-200: #24304a;
-  --color-slate-300: #3a4761;
-  --color-slate-400: #8b98ad;
-  --color-slate-500: #a3b0c4;
-  --color-slate-600: #c0cadb;
-  --color-slate-700: #d6dfec;
-  --color-slate-800: #e7eef8;
-  --color-slate-900: #f3f7fc;
+  /* Neutral (not blue) charcoal ramp so every slate-* utility flips cleanly. */
+  --color-slate-50: #1a1d22;
+  --color-slate-100: #23272e;
+  --color-slate-200: #2f343c;
+  --color-slate-300: #454b55;
+  --color-slate-400: #8d95a2;
+  --color-slate-500: #a6aeba;
+  --color-slate-600: #c2c8d1;
+  --color-slate-700: #d8dde4;
+  --color-slate-800: #e8ebf0;
+  --color-slate-900: #f2f4f8;
   --color-slate-950: #ffffff;
 }
 
@@ -216,3 +256,23 @@ h1, h2, h3, h4, .font-display { font-family: var(--font-display); letter-spacing
 
 @keyframes scene-in { from { opacity: 0; transform: translateY(22px) scale(.985); } to { opacity: 1; transform: none; } }
 .scene-enter { animation: scene-in .42s cubic-bezier(.22,1,.36,1) both; }
+
+/* ── Responsive safety net ──────────────────────────────────────────────
+   Grid and flex children default to min-width:auto, which lets long words,
+   tables and truncated text push a layout wider than the viewport. */
+main .grid > *,
+section .grid > *,
+.card,
+.grid > .card { min-width: 0; }
+main .flex > .min-w-0 { min-width: 0; }
+img, svg, canvas, video { max-width: 100%; }
+table { width: 100%; }
+.table-wrap { width: 100%; overflow-x: auto; }
+body { overflow-x: hidden; }
+
+@media (max-width: 480px) {
+  .btn { padding: .55rem .85rem; font-size: .82rem; }
+  .btn-sm { padding: .35rem .6rem; font-size: .74rem; }
+  .card { border-radius: .95rem; }
+  .chip { font-size: .68rem; padding: .2rem .5rem; }
+}

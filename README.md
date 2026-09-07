@@ -3,6 +3,26 @@
 From Community Problems to Collaborative Solutions.
 A frontend-only React prototype of a civic innovation platform connecting **Citizens · Universities · Industry · Government** through an AI-assisted 12-stage project lifecycle.
 
+
+## Full-stack (not a mock any more)
+
+Supabase is the single source of truth: every dashboard reads the same rows, and
+every stage transition writes back through `src/services/repository.js`. The AI
+pipeline ported from `jharkhand-portal-backend` runs server-side as the
+`ai-analyze` Supabase Edge Function, so the Gemini key never reaches the browser.
+
+See **[ARCHITECTURE.md](ARCHITECTURE.md)** for the diagram, the table-by-table
+data flow, and setup on a fresh machine (schema, function deploy, seeding).
+
+Quick start:
+
+```bash
+npm install
+cp .env.example .env     # add your Supabase URL + anon key
+npm run seed             # demo dataset as real database rows
+npm run dev
+```
+
 ## Run
 
 ```bash

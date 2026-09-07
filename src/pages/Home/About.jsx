@@ -4,6 +4,7 @@ import { Reveal, SectionHead, Chip, Stat } from '../../components/shared/ui';
 import Ecosystem from '../../components/shared/Ecosystem';
 import { ROLES, CATEGORIES } from '../../data/constants';
 import { PLATFORM_TOTALS } from '../../data/seedChallenges';
+import { useShell } from '../../context/AppShellContext';
 
 const STACK = [
   ['React 19 + Vite', 'Component architecture and instant HMR'],
@@ -17,10 +18,11 @@ const STACK = [
 const SDG = ['SDG 3 · Good Health', 'SDG 4 · Quality Education', 'SDG 6 · Clean Water', 'SDG 9 · Industry & Innovation', 'SDG 11 · Sustainable Cities', 'SDG 17 · Partnerships'];
 
 export default function About() {
+  const { t } = useShell();
   return (
     <div className="pt-28 pb-20">
       <div className="max-w-5xl mx-auto px-5 sm:px-6">
-        <SectionHead eyebrow="About" title="Why SamadhanSetu exists"
+        <SectionHead eyebrow="About" title={t('Why SamadhanSetu exists')}
           sub="Built for Smart India Hackathon 2026 as a working prototype of a national civic innovation network." />
 
         <div className="grid md:grid-cols-2 gap-8 items-center mt-12">
@@ -48,10 +50,10 @@ export default function About() {
         </div>
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-14">
-          <Stat icon={Icons.Layers} label="Societal domains covered" value={CATEGORIES.length} color="#6366f1" />
-          <Stat icon={Icons.Workflow} label="Lifecycle stages" value={12} color="#06b6d4" delay={0.08} />
-          <Stat icon={Icons.Brain} label="AI capabilities simulated" value={6} color="#8b5cf6" delay={0.16} />
-          <Stat icon={Icons.LayoutDashboard} label="Connected dashboards" value={4} color="#10b981" delay={0.24} />
+          <Stat icon={Icons.Layers} label={t('Societal domains covered')} value={CATEGORIES.length} color="#6366f1" />
+          <Stat icon={Icons.Workflow} label={t('Lifecycle stages')} value={12} color="#06b6d4" delay={0.08} />
+          <Stat icon={Icons.Brain} label={t('AI capabilities simulated')} value={6} color="#8b5cf6" delay={0.16} />
+          <Stat icon={Icons.LayoutDashboard} label={t('Connected dashboards')} value={4} color="#10b981" delay={0.24} />
         </div>
 
         <div className="grid md:grid-cols-2 gap-4 mt-6">

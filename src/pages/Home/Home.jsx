@@ -43,15 +43,15 @@ function Hero() {
       <motion.div className="absolute top-20 -left-24 w-72 h-72 rounded-full bg-indigo-300/20 blur-3xl anim-float" />
       <motion.div className="absolute bottom-0 -right-20 w-80 h-80 rounded-full bg-cyan-300/20 blur-3xl anim-float" style={{ animationDelay: '2s' }} />
 
-      <div className="max-w-6xl mx-auto px-5 sm:px-6 grid lg:grid-cols-[1.05fr_1fr] gap-10 lg:gap-6 items-center">
-        <div>
+      <div className="max-w-6xl mx-auto px-5 sm:px-6 grid lg:grid-cols-[1.05fr_minmax(0,1fr)] gap-10 lg:gap-6 items-center">
+        <div className="min-w-0">
           <motion.div initial={{ y: 14 }} animate={{ y: 0 }} transition={{ duration: 0.5 }}
             className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white shadow-sm border border-indigo-100 text-[0.74rem] font-bold text-indigo-600">
             <Sparkles size={13} /> {t('home.badge')}
           </motion.div>
 
           <motion.h1 initial={{ y: 20 }} animate={{ y: 0 }} transition={{ duration: 0.7, delay: 0.08 }}
-            className="font-display text-[2.4rem] sm:text-[3.4rem] leading-[1.06] font-extrabold text-slate-900 mt-5">
+            className="font-display text-[2rem] xs:text-[2.4rem] sm:text-[3rem] lg:text-[3.4rem] leading-[1.08] font-extrabold text-slate-900 mt-5 break-words">
             {t('home.hero.title1')} <span className="grad-text">{t('home.hero.title2')}</span><br />{t('home.hero.title3')}
           </motion.h1>
 
@@ -84,7 +84,7 @@ function Hero() {
           </motion.div>
         </div>
 
-        <div className="flex justify-center">
+        <div className="flex justify-center min-w-0 w-full">
           <Ecosystem size={430} />
         </div>
       </div>
@@ -333,8 +333,8 @@ function Innovations() {
     <section className="py-16 sm:py-24" style={{ background: 'var(--bg)' }}>
       <div className="max-w-6xl mx-auto px-5 sm:px-6">
         <SectionHead eyebrow="Key Innovations" accent="#8b5cf6"
-          title="Five ideas that make this more than a complaint portal"
-          sub="Each one is visible and usable inside the dashboards — not a slide." />
+          title={t('Five ideas that make this more than a complaint portal')}
+          sub={t('Each one is visible and usable inside the dashboards — not a slide.')} />
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 mt-10">
           {INNOVATIONS.map((n, i) => {
             const Icon = Icons[n.icon] ?? Icons.Sparkles;
@@ -433,16 +433,16 @@ function Impact() {
         <SectionHead eyebrow={t('home.impact.eyebrow')} accent="#059669" title={t('home.impact.title')}
           sub={t('home.impact.sub')} />
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-10">
-          <Stat icon={Icons.HeartHandshake} label="Citizens impacted" value={totals.beneficiaries / 100000} decimals={1} suffix=" Lakh" color="#059669" />
-          <Stat icon={Icons.CheckCircle2} label="Solutions deployed" value={totals.completed} color="#4f46e5" delay={0.08} />
-          <Stat icon={Icons.IndianRupee} label="CSR & funding mobilised" value={totals.fundingMobilised} suffix=" Cr" color="#f59e0b" delay={0.16} />
-          <Stat icon={Icons.MapPinned} label="Districts covered" value={totals.districts} color="#06b6d4" delay={0.24} />
+          <Stat icon={Icons.HeartHandshake} label={t('Citizens impacted')} value={totals.beneficiaries / 100000} decimals={1} suffix=" Lakh" color="#059669" />
+          <Stat icon={Icons.CheckCircle2} label={t('Solutions deployed')} value={totals.completed} color="#4f46e5" delay={0.08} />
+          <Stat icon={Icons.IndianRupee} label={t('CSR & funding mobilised')} value={totals.fundingMobilised} suffix=" Cr" color="#f59e0b" delay={0.16} />
+          <Stat icon={Icons.MapPinned} label={t('Districts covered')} value={totals.districts} color="#06b6d4" delay={0.24} />
         </div>
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
-          <Stat icon={Icons.GraduationCap} label="Universities on board" value={totals.universities} color="#6366f1" />
-          <Stat icon={Icons.Factory} label="Industry partners" value={totals.industries} color="#f59e0b" delay={0.08} />
-          <Stat icon={Icons.Users} label="Students engaged" value={totals.students} color="#0891b2" delay={0.16} />
-          <Stat icon={Icons.UserCheck} label="Faculty & researchers" value={totals.faculty} color="#7c3aed" delay={0.24} />
+          <Stat icon={Icons.GraduationCap} label={t('Universities on board')} value={totals.universities} color="#6366f1" />
+          <Stat icon={Icons.Factory} label={t('Industry partners')} value={totals.industries} color="#f59e0b" delay={0.08} />
+          <Stat icon={Icons.Users} label={t('Students engaged')} value={totals.students} color="#0891b2" delay={0.16} />
+          <Stat icon={Icons.UserCheck} label={t('Faculty & researchers')} value={totals.faculty} color="#7c3aed" delay={0.24} />
         </div>
       </div>
     </section>
@@ -460,7 +460,7 @@ function AnalyticsPreview({ analytics }) {
         <div className="grid lg:grid-cols-[1.15fr_1fr] gap-4 mt-10">
           <Reveal>
             <div className="card p-5">
-              <p className="font-display font-bold text-slate-900">District-wise challenge density</p>
+              <p className="font-display font-bold text-slate-900">{t('District-wise challenge density')}</p>
               <p className="text-[0.76rem] text-slate-400 mb-1">Jharkhand · live demo data</p>
               <JharkhandMap data={analytics.byDistrict} markers={analytics.markers} height={340} />
             </div>
@@ -468,14 +468,14 @@ function AnalyticsPreview({ analytics }) {
           <div className="space-y-4">
             <Reveal delay={0.1}>
               <div className="card p-5">
-                <p className="font-display font-bold text-slate-900">Platform growth</p>
-                <p className="text-[0.76rem] text-slate-400 mb-2">Challenges, validations and projects over time</p>
+                <p className="font-display font-bold text-slate-900">{t('Platform growth')}</p>
+                <p className="text-[0.76rem] text-slate-400 mb-2">{t('Challenges, validations and projects over time')}</p>
                 <TrendArea data={TREND_DATA} height={190} />
               </div>
             </Reveal>
             <Reveal delay={0.18}>
               <div className="card p-5">
-                <p className="font-display font-bold text-slate-900">Challenges by domain</p>
+                <p className="font-display font-bold text-slate-900">{t('Challenges by domain')}</p>
                 <div className="flex flex-wrap gap-1.5 mt-2">
                   {CATEGORIES.slice(0, 6).map((c) => <Chip key={c.key} color={c.hex}>{c.key}</Chip>)}
                 </div>

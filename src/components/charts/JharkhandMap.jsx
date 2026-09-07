@@ -56,11 +56,14 @@ function buildCells() {
   });
 }
 
-const HEAT = ['#e2e8f0', '#a7f3d0', '#6ee7b7', '#fcd34d', '#fb923c', '#f43f5e'];
+const HEAT = ['var(--map-empty)', '#a7f3d0', '#5eead4', '#facc15', '#fb923c', '#f43f5e'];
 
 function heatColor(v, max) {
   if (!v) return HEAT[0];
-  const t = v / (max || 1);
+  // With very few data points a purely relative ramp paints everything hot,
+  // so fall back to absolute counts until the dataset is large enough.
+  if (max <= 4) return HEAT[Math.min(v, 5)];
+  const t = v / max;
   if (t > 0.8) return HEAT[5];
   if (t > 0.6) return HEAT[4];
   if (t > 0.4) return HEAT[3];
@@ -125,11 +128,11 @@ export default function JharkhandMap({
         >
           <defs>
             <linearGradient id="jm-water" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stopColor="#dbeafe" stopOpacity="0.55" />
-              <stop offset="100%" stopColor="#cffafe" stopOpacity="0.35" />
+              <stop offset="0%" stopColor="var(--map-water-a)" stopOpacity="0.6" />
+              <stop offset="100%" stopColor="var(--map-water-b)" stopOpacity="0.42" />
             </linearGradient>
             <filter id="jm-shadow" x="-25%" y="-25%" width="150%" height="150%">
-              <feDropShadow dx="0" dy="1.4" stdDeviation="1.3" floodColor="#1e293b" floodOpacity="0.22" />
+              <feDropShadow dx="0" dy="1.4" stdDeviation="1.3" floodColor="#000" floodOpacity="0.28" />
             </filter>
             <filter id="jm-glow" x="-60%" y="-60%" width="220%" height="220%">
               <feGaussianBlur stdDeviation="0.9" result="b" />
@@ -141,13 +144,8 @@ export default function JharkhandMap({
           </defs>
 
           {/* soft backdrop */}
-          <rect x="0" y="0" width="110" height="100" fill="url(#jm-grid)" className="text-slate-300" />
-          <motion.path
-            d={toPath(OUTLINE)} fill="url(#jm-water)" stroke="none"
-            initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }}
-            style={{ transformOrigin: '55px 50px' }} transition={{ duration: 0.7 }}
-            filter="url(#jm-shadow)"
-          />
+          <rect x="0" y="0" width="110" height="100" fill="url(#jm-grid)" style={{ color: 'var(--border-strong)' }} />
+          <path d={toPath(OUTLINE)} fill="url(#jm-water)" stroke="none" filter="url(#jm-shadow)" />
 
           {/* district cells */}
           {cells.map((c, i) => {
@@ -156,16 +154,19 @@ export default function JharkhandMap({
             const on = active === c.name;
             const isSel = selected === c.name;
             return (
-              <motion.path
+              <path
                 key={c.name}
                 d={c.path}
                 fill={heatColor(v, max)}
-                stroke={isSel ? '#4f46e5' : '#ffffff'}
+                stroke={isSel ? '#818cf8' : 'var(--map-stroke)'}
                 strokeWidth={isSel ? 0.55 : 0.28}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: on ? 1 : 0.88, scale: on ? 1.02 : 1 }}
-                transition={{ delay: 0.15 + i * 0.025, duration: 0.4 }}
-                style={{ transformOrigin: `${c.cx}px ${c.cy}px`, cursor: 'pointer' }}
+                style={{
+                  transformOrigin: `${c.cx}px ${c.cy}px`,
+                  cursor: 'pointer',
+                  opacity: on ? 1 : 0.9,
+                  transform: on ? 'scale(1.02)' : 'scale(1)',
+                  transition: `opacity .3s ease ${(i * 0.02).toFixed(2)}s, transform .3s ease, fill .3s ease`,
+                }}
                 onMouseEnter={() => setHover(c.name)}
                 onMouseLeave={() => setHover(null)}
                 onClick={() => onSelect?.(isSel ? null : c.name)}
@@ -174,7 +175,7 @@ export default function JharkhandMap({
           })}
 
           {/* state boundary on top */}
-          <path d={toPath(OUTLINE)} fill="none" stroke="#334155" strokeWidth="0.5" strokeLinejoin="round" opacity="0.55" />
+          <path d={toPath(OUTLINE)} fill="none" stroke="var(--map-outline)" strokeWidth="0.5" strokeLinejoin="round" opacity="0.7" />
 
           {/* problem hotspots */}
           {cells.map((c) => {
@@ -199,9 +200,7 @@ export default function JharkhandMap({
             const col = catMeta(m.category).hex;
             const deployed = m.deployed;
             return (
-              <motion.g key={`${m.id}-${i}`} pointerEvents="none"
-                initial={{ opacity: 0, y: -3 }} animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.6 + i * 0.04, type: 'spring', stiffness: 260, damping: 18 }}>
+              <g key={`${m.id}-${i}`} pointerEvents="none">
                 <motion.path
                   d="M0,0 C-1.15,-1.5 -1.7,-2.3 -1.7,-3.1 A1.7,1.7 0 1,1 1.7,-3.1 C1.7,-2.3 1.15,-1.5 0,0 Z"
                   transform={`translate(${m.x},${m.y})`}
@@ -211,7 +210,7 @@ export default function JharkhandMap({
                   filter={deployed ? 'url(#jm-glow)' : undefined}
                 />
                 <circle cx={m.x} cy={m.y - 3.1} r="0.62" fill="#fff" />
-              </motion.g>
+              </g>
             );
           })}
 
@@ -223,11 +222,11 @@ export default function JharkhandMap({
                 style={{
                   fontSize: on ? 2.5 : 2.1,
                   fontWeight: on ? 800 : 600,
-                  fill: on ? '#0f172a' : '#334155',
-                  opacity: on ? 1 : 0.72,
+                  fill: 'var(--map-label)',
+                  opacity: on ? 1 : 0.78,
                   transition: 'all .18s',
                   paintOrder: 'stroke',
-                  stroke: '#ffffff',
+                  stroke: 'var(--map-label-halo)',
                   strokeWidth: 0.5,
                   strokeLinejoin: 'round',
                 }}>

@@ -7,6 +7,7 @@ import Home from './pages/Home/Home';
 import HowItWorks from './pages/Home/HowItWorks';
 import About from './pages/Home/About';
 import Simulation from './pages/Simulation/Simulation';
+import AIIntelligence from './pages/AI/AIIntelligence';
 import CitizenDashboard from './pages/Citizen/CitizenDashboard';
 import UniversityDashboard from './pages/University/UniversityDashboard';
 import IndustryDashboard from './pages/Industry/IndustryDashboard';
@@ -38,6 +39,7 @@ export default function App() {
 
           {/* Interactive Simulation / Presentation Flow */}
           <Route path="/simulation" element={<Simulation />} />
+          <Route path="/ai" element={<AIIntelligence />} />
 
           {/* 4 Dedicated Stakeholder Portals (Role Protected) */}
           <Route

@@ -12,6 +12,7 @@ const LINKS = [
   { to: '/', key: 'nav.home', label: 'Home' },
   { to: '/how-it-works', key: 'nav.howItWorks', label: 'How It Works' },
   { to: '/simulation', key: 'nav.simulation', label: 'Simulation' },
+  { to: '/ai', key: 'nav.ai', label: 'AI Intelligence' },
   { to: '/about', key: 'nav.about', label: 'About' },
 ];
 
@@ -120,7 +121,7 @@ export default function PublicNav() {
                     initial={{ opacity: 0, y: 8, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 4, scale: 0.98 }}
                     transition={{ duration: 0.18 }}
                     className="absolute right-0 top-12 w-72 rounded-2xl shadow-xl border p-2 z-10"
-                    style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
+                    style={{ background: 'var(--surface-raised)', borderColor: 'var(--border)' }}>
                     {DASHBOARDS.map((d) => {
                       const r = ROLES[d.role];
                       return (

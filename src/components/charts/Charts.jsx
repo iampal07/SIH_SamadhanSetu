@@ -43,7 +43,7 @@ export function TrendArea({ data, keys = [
         <XAxis dataKey="month" tick={AXIS} axisLine={false} tickLine={false} />
         <YAxis tick={AXIS} axisLine={false} tickLine={false} width={44} />
         <Tooltip content={<TipBox />} />
-        <Legend wrapperStyle={{ fontSize: 11, fontWeight: 600, paddingTop: 8 }} iconType="circle" iconSize={7} />
+        <Legend wrapperStyle={{ fontSize: 11, fontWeight: 600, paddingTop: 8, color: 'var(--ink)' }} iconType="circle" iconSize={7} />
         {keys.map((k, i) => (
           <Area key={k.k} type="monotone" dataKey={k.k} name={k.name} stroke={k.c} strokeWidth={2.4}
             fill={`url(#g-${k.k})`} animationDuration={1200} animationBegin={i * 160} />
@@ -59,11 +59,11 @@ export function CategoryDonut({ data, height = 250, inner = 58, outer = 88 }) {
       <PieChart>
         <Pie data={data} dataKey="value" nameKey="name" innerRadius={inner} outerRadius={outer}
           paddingAngle={3} cornerRadius={6} animationDuration={1100} stroke="none">
-          {data.map((d) => <Cell key={d.name} fill={catMeta(d.name).hex} />)}
+          {data.map((d) => <Cell key={d.key ?? d.name} fill={catMeta(d.key ?? d.name).hex} />)}
         </Pie>
         <Tooltip content={<TipBox />} />
         <Legend layout="vertical" align="right" verticalAlign="middle" iconType="circle" iconSize={7}
-          wrapperStyle={{ fontSize: 11, fontWeight: 600, lineHeight: '18px' }} />
+          wrapperStyle={{ fontSize: 11, fontWeight: 600, lineHeight: '18px', color: 'var(--ink)' }} />
       </PieChart>
     </ResponsiveContainer>
   );

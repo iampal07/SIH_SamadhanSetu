@@ -17,12 +17,18 @@ export const STAGE_INDEX = Object.fromEntries(STAGES.map((s, i) => [s.key, i]));
 export const stageMeta = (k) => STAGES[STAGE_INDEX[k]] ?? STAGES[0];
 export const stageAfter = (k) => STAGES[Math.min(STAGE_INDEX[k] + 1, STAGES.length - 1)].key;
 
+/**
+ * Stakeholder identity colours.
+ * `hex` is the constant brand colour (same in both themes).
+ * `soft` / `deep` resolve through CSS variables so every tinted surface and
+ * label flips automatically between light and dark themes.
+ */
 export const ROLES = {
-  citizen:  { key: 'citizen',  label: 'Citizen',    color: 'citizen',  hex: '#06b6d4', soft: '#ecfeff', deep: '#0e7490', grad: 'from-cyan-500 to-sky-500' },
-  varsity:  { key: 'varsity',  label: 'University', color: 'varsity',  hex: '#6366f1', soft: '#eef2ff', deep: '#4338ca', grad: 'from-indigo-500 to-violet-500' },
-  industry: { key: 'industry', label: 'Industry',   color: 'industry', hex: '#f59e0b', soft: '#fff7ed', deep: '#b45309', grad: 'from-amber-500 to-orange-500' },
-  govt:     { key: 'govt',     label: 'Government', color: 'govt',     hex: '#10b981', soft: '#ecfdf5', deep: '#047857', grad: 'from-emerald-500 to-teal-500' },
-  ai:       { key: 'ai',       label: 'AI Engine',  color: 'varsity',  hex: '#8b5cf6', soft: '#f5f3ff', deep: '#6d28d9', grad: 'from-violet-500 to-fuchsia-500' },
+  citizen:  { key: 'citizen',  label: 'Citizen',    color: 'citizen',  hex: '#06b6d4', soft: 'var(--tint-citizen)',  deep: 'var(--on-citizen)',  grad: 'from-cyan-500 to-sky-500' },
+  varsity:  { key: 'varsity',  label: 'University', color: 'varsity',  hex: '#6366f1', soft: 'var(--tint-varsity)',  deep: 'var(--on-varsity)',  grad: 'from-indigo-500 to-violet-500' },
+  industry: { key: 'industry', label: 'Industry',   color: 'industry', hex: '#f59e0b', soft: 'var(--tint-industry)', deep: 'var(--on-industry)', grad: 'from-amber-500 to-orange-500' },
+  govt:     { key: 'govt',     label: 'Government', color: 'govt',     hex: '#10b981', soft: 'var(--tint-govt)',     deep: 'var(--on-govt)',     grad: 'from-emerald-500 to-teal-500' },
+  ai:       { key: 'ai',       label: 'AI Engine',  color: 'varsity',  hex: '#8b5cf6', soft: 'var(--tint-ai)',       deep: 'var(--on-ai)',       grad: 'from-violet-500 to-fuchsia-500' },
 };
 
 export const ROLE_PORTAL_PATHS = {

@@ -16,7 +16,6 @@ import { UNIVERSITIES, TALENT_POOL } from '../../data/universities';
 import { CATEGORY_KEYS, ROLES, STAGE_INDEX, STAGES, catMeta, SUPPORT_TYPES } from '../../data/constants';
 import { suggestDisciplines } from '../../services/aiEngine';
 import { timeAgo, fmtFull, cx } from '../../utils/format';
-import { insertPrototypeInDb, updateChallengeInDb } from '../../services/db';
 
 const R = ROLES.varsity;
 
@@ -85,9 +84,9 @@ function Overview({ uni, incoming, mine }) {
         <div className="relative flex flex-col sm:flex-row gap-4 sm:items-center justify-between">
           <div>
             <p className="text-[0.72rem] font-bold uppercase tracking-widest opacity-80">{t('varsity.hero.eyebrow')}</p>
-            <h2 className="font-display text-2xl sm:text-3xl font-extrabold mt-1">{incoming.length} new challenges match your expertise</h2>
+            <h2 className="font-display text-2xl sm:text-3xl font-extrabold mt-1">{t('varsity.newMatch', '', { n: incoming.length })}</h2>
             <div className="flex flex-wrap gap-1.5 mt-3">
-              {uni.domains.map((d) => <span key={d} className="chip bg-white/15 text-white">{d}</span>)}
+              {uni.domains.map((d) => <span key={d} className="chip bg-white/15 text-white">{t(`cat.${d}`, d)}</span>)}
             </div>
           </div>
           <button className="btn bg-white text-indigo-700 hover:bg-white/90 px-5 py-3 shrink-0" onClick={() => nav('/university/challenges')}>
@@ -97,19 +96,19 @@ function Overview({ uni, incoming, mine }) {
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Stat icon={Icons.Inbox} label="AI recommendations" value={incoming.length} color={R.hex} />
-        <Stat icon={Icons.FolderKanban} label="Active projects" value={active.length} color="#0891b2" delay={0.08} />
-        <Stat icon={Icons.Users} label="Students engaged" value={students} color="#f59e0b" delay={0.16} />
-        <Stat icon={Icons.Factory} label="Industry partnerships" value={mine.reduce((s, c) => s + c.partners.length, 0)} color="#059669" delay={0.24} />
+        <Stat icon={Icons.Inbox} label={t('AI recommendations')} value={incoming.length} color={R.hex} />
+        <Stat icon={Icons.FolderKanban} label={t('Active projects')} value={active.length} color="#0891b2" delay={0.08} />
+        <Stat icon={Icons.Users} label={t('Students engaged')} value={students} color="#f59e0b" delay={0.16} />
+        <Stat icon={Icons.Factory} label={t('Industry partnerships')} value={mine.reduce((s, c) => s + c.partners.length, 0)} color="#059669" delay={0.24} />
       </div>
 
       <div className="grid lg:grid-cols-2 gap-4">
         <div className="card p-5">
           <div className="flex items-center justify-between mb-3">
-            <p className="font-display font-bold text-slate-900">Incoming recommended challenges</p>
-            <button className="btn btn-ghost btn-sm" onClick={() => nav('/university/challenges')}>View all</button>
+            <p className="font-display font-bold text-slate-900">{t('Incoming recommended challenges')}</p>
+            <button className="btn btn-ghost btn-sm" onClick={() => nav('/university/challenges')}>{t('common.viewAll')}</button>
           </div>
-          {incoming.length === 0 ? <Empty icon={Icons.InboxIcon ?? Icons.Inbox} title="Queue is clear" sub="Newly validated challenges matching your domains appear here." />
+          {incoming.length === 0 ? <Empty icon={Icons.InboxIcon ?? Icons.Inbox} title={t('Queue is clear')} sub={t('Newly validated challenges matching your domains appear here.')} />
             : (
               <div className="space-y-3">
                 {incoming.slice(0, 3).map((c) => (
@@ -130,9 +129,9 @@ function Overview({ uni, incoming, mine }) {
         </div>
 
         <div className="card p-5">
-          <p className="font-display font-bold text-slate-900 mb-1">Project portfolio</p>
-          <p className="text-[0.76rem] text-slate-400 mb-3">Live lifecycle status of everything you have accepted</p>
-          {mine.length === 0 ? <Empty icon={Icons.FolderOpen} title="No projects yet" sub="Accept a recommended challenge to start a project." />
+          <p className="font-display font-bold text-slate-900 mb-1">{t('Project portfolio')}</p>
+          <p className="text-[0.76rem] text-slate-400 mb-3">{t('Live lifecycle status of everything you have accepted')}</p>
+          {mine.length === 0 ? <Empty icon={Icons.FolderOpen} title={t('No projects yet')} sub={t('Accept a recommended challenge to start a project.')} />
             : (
               <div className="space-y-3.5">
                 {mine.slice(0, 4).map((c) => (
@@ -150,7 +149,7 @@ function Overview({ uni, incoming, mine }) {
       </div>
 
       <div className="card p-5">
-        <p className="font-display font-bold text-slate-900 mb-3">Research strengths mapped to societal domains</p>
+        <p className="font-display font-bold text-slate-900 mb-3">{t('Research strengths mapped to societal domains')}</p>
         <div className="grid sm:grid-cols-2 gap-4">
           <FitRadar data={uni.domains.map((d, i) => ({ axis: d.split(' ')[0], value: 92 - i * 9 }))} color={R.hex} />
           <div className="space-y-2 self-center">
@@ -189,13 +188,14 @@ function Incoming({ uni, incoming }) {
   return (
     <div className="space-y-4">
       <div className="card p-4 flex flex-wrap gap-3 items-center">
-        <SearchInput value={q} onChange={setQ} placeholder="Search recommended challenges…" className="flex-1 min-w-[220px]" />
-        <Select value={cat} onChange={setCat} options={['All', ...CATEGORY_KEYS]} className="w-auto" />
-        <Chip color={R.hex} bg={R.soft}>{list.length} recommended by AI</Chip>
+        <SearchInput value={q} onChange={setQ} placeholder={t('Search recommended challenges…')} className="flex-1 min-w-[220px]" />
+        <Select value={cat} onChange={setCat} className="w-auto"
+          options={[{ value: 'All', label: t('common.all') }, ...CATEGORY_KEYS.map((c) => ({ value: c, label: t(`cat.${c}`, c) }))]} />
+        <Chip color={R.hex} bg={R.soft}>{t('common.recommendedByAi', '', { n: list.length })}</Chip>
       </div>
 
       {list.length === 0 ? (
-        <Empty icon={Icons.Inbox} title="No pending recommendations"
+        <Empty icon={Icons.Inbox} title={t('No pending recommendations')}
           sub="When the government validates a challenge in your research domains, the AI routes it here automatically." />
       ) : (
         <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -226,6 +226,7 @@ function Incoming({ uni, incoming }) {
 
 /* ── Projects ───────────────────────────────────────────────────────── */
 function Projects({ uni, mine }) {
+  const { t } = useShell();
   const { dispatch, toast } = usePlatform();
   const [open, setOpen] = useState(null);
   const [teamFor, setTeamFor] = useState(null);
@@ -241,7 +242,7 @@ function Projects({ uni, mine }) {
   return (
     <div className="space-y-4">
       {mine.length === 0 ? (
-        <Empty icon={Icons.FolderOpen} title="No projects yet" sub="Accept a recommended challenge to create your first project." />
+        <Empty icon={Icons.FolderOpen} title={t('No projects yet')} sub={t('Accept a recommended challenge to create your first project.')} />
       ) : (
         <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
           {mine.map((c, i) => {
@@ -282,6 +283,7 @@ function Projects({ uni, mine }) {
 
 /* ── Team formation modal ───────────────────────────────────────────── */
 function TeamModal({ challenge, uni, onClose }) {
+  const { t } = useShell();
   const { dispatch, toast } = usePlatform();
   const pool = TALENT_POOL[uni.id] ?? [];
   const [picked, setPicked] = useState([]);
@@ -314,13 +316,13 @@ function TeamModal({ challenge, uni, onClose }) {
 
   return (
     <Modal open={open} onClose={onClose} accent={R.hex} width="max-w-3xl"
-      title="Form a multidisciplinary team" subtitle={challenge ? `${challenge.code} · ${challenge.title}` : ''}>
+      title={t('Form a multidisciplinary team')} subtitle={challenge ? `${challenge.code} · ${challenge.title}` : ''}>
       {challenge && (
         <div className="space-y-4">
           <DisciplineWeb disciplines={disciplines} category={challenge.category} />
           <div className="flex flex-wrap gap-3 items-end">
             <div className="flex-1 min-w-[220px]">
-              <label className="label">Team name</label>
+              <label className="label">{t('Team name')}</label>
               <input className="field" value={name} onChange={(e) => setName(e.target.value)}
                 placeholder={`${challenge.category.split(' ')[0]} Innovation Cell`} />
             </div>
@@ -360,6 +362,7 @@ function TeamModal({ challenge, uni, onClose }) {
 
 /* ── Proposal modal ─────────────────────────────────────────────────── */
 function ProposalModal({ challenge, onClose }) {
+  const { t } = useShell();
   const { dispatch, toast } = usePlatform();
   const [f, setF] = useState({ title: '', objective: '', approach: '', budget: '₹28,50,000', duration: '9 months' });
   const [needs, setNeeds] = useState(['Funding', 'Technology']);
@@ -392,18 +395,18 @@ function ProposalModal({ challenge, onClose }) {
 
   return (
     <Modal open={open} onClose={onClose} accent={R.hex} width="max-w-2xl"
-      title="Create project proposal" subtitle={challenge ? `${challenge.code} · ${challenge.title}` : ''}>
+      title={t('Create project proposal')} subtitle={challenge ? `${challenge.code} · ${challenge.title}` : ''}>
       {challenge && (
         <div className="space-y-4">
           <div>
-            <label className="label">Proposal title</label>
+            <label className="label">{t('Proposal title')}</label>
             <input className="field" value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })}
               placeholder={`${challenge.category} solution for ${challenge.village}`} />
           </div>
           <div>
-            <label className="label">Objective</label>
+            <label className="label">{t('Objective')}</label>
             <textarea rows={3} className="field resize-none" value={f.objective} onChange={(e) => setF({ ...f, objective: e.target.value })}
-              placeholder="What will this project deliver and for whom?" />
+              placeholder={t('What will this project deliver and for whom?')} />
           </div>
           <div>
             <label className="label">Approach</label>
@@ -411,11 +414,11 @@ function ProposalModal({ challenge, onClose }) {
               placeholder="Survey → co-design → prototype → pilot → handover" />
           </div>
           <div className="grid sm:grid-cols-2 gap-4">
-            <div><label className="label">Estimated budget</label><input className="field" value={f.budget} onChange={(e) => setF({ ...f, budget: e.target.value })} /></div>
+            <div><label className="label">{t('Estimated budget')}</label><input className="field" value={f.budget} onChange={(e) => setF({ ...f, budget: e.target.value })} /></div>
             <div><label className="label">Duration</label><input className="field" value={f.duration} onChange={(e) => setF({ ...f, duration: e.target.value })} /></div>
           </div>
           <div>
-            <label className="label">Industry support required</label>
+            <label className="label">{t('Industry support required')}</label>
             <div className="flex flex-wrap gap-1.5">
               {SUPPORT_TYPES.map((s) => {
                 const on = needs.includes(s);
@@ -434,7 +437,7 @@ function ProposalModal({ challenge, onClose }) {
           </p>
           <div className="flex justify-end gap-2">
             <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
-            <button className="btn btn-primary" onClick={submit}><FileText size={15} />Publish proposal</button>
+            <button className="btn btn-primary" onClick={submit}><FileText size={15} />{t('Publish proposal')}</button>
           </div>
         </div>
       )}
@@ -444,17 +447,18 @@ function ProposalModal({ challenge, onClose }) {
 
 /* ── Teams ──────────────────────────────────────────────────────────── */
 function Teams({ uni, mine }) {
+  const { t } = useShell();
   const pool = TALENT_POOL[uni.id] ?? [];
   const teams = mine.filter((c) => c.team);
   const [tab, setTab] = useState('teams');
 
   return (
     <div className="space-y-4">
-      <Tabs tabs={[{ key: 'teams', label: `Active teams (${teams.length})` }, { key: 'pool', label: `Talent pool (${pool.length})` }]}
+      <Tabs tabs={[{ key: 'teams', label: t('tab.teams', '', { n: teams.length }) }, { key: 'pool', label: t('tab.pool', '', { n: pool.length }) }]}
         active={tab} onChange={setTab} accent={R.hex} />
 
       {tab === 'teams' && (teams.length === 0
-        ? <Empty icon={Icons.Users} title="No teams formed yet" sub="Accept a challenge and compose a multidisciplinary team." />
+        ? <Empty icon={Icons.Users} title={t('No teams formed yet')} sub={t('Accept a challenge and compose a multidisciplinary team.')} />
         : (
           <div className="grid md:grid-cols-2 gap-4">
             {teams.map((c, i) => (
@@ -512,6 +516,7 @@ function Teams({ uni, mine }) {
 
 /* ── Industry support ───────────────────────────────────────────────── */
 function IndustrySupport({ mine }) {
+  const { t } = useShell();
   const { dispatch, toast } = usePlatform();
   const [open, setOpen] = useState(null);
   const withProposal = mine.filter((c) => c.proposal);
@@ -519,7 +524,7 @@ function IndustrySupport({ mine }) {
   return (
     <div className="space-y-4">
       {withProposal.length === 0 ? (
-        <Empty icon={Icons.Handshake} title="No proposals published yet" sub="Publish a proposal to request industry mentorship, funding or technology." />
+        <Empty icon={Icons.Handshake} title={t('No proposals published yet')} sub={t('Publish a proposal to request industry mentorship, funding or technology.')} />
       ) : withProposal.map((c, i) => (
         <Reveal key={c.id} delay={i * 0.06}>
           <div className="card p-5">
@@ -534,7 +539,7 @@ function IndustrySupport({ mine }) {
               <div className="flex items-center gap-2">
                 {c.partners.length > 0
                   ? <Chip color="#059669" bg="#ecfdf5"><Check size={11} />{c.partners.length} partner{c.partners.length > 1 ? 's' : ''} joined</Chip>
-                  : <Chip color="#b45309" bg="#fff7ed">Open request</Chip>}
+                  : <Chip color="#b45309" bg="#fff7ed">{t('Open request')}</Chip>}
                 <button className="btn btn-ghost btn-sm" onClick={() => setOpen(c)}>Details</button>
               </div>
             </div>
@@ -563,6 +568,7 @@ function IndustrySupport({ mine }) {
 
 /* ── Analytics ──────────────────────────────────────────────────────── */
 function Analytics({ uni, mine }) {
+  const { t } = useShell();
   const byCat = useMemo(() => {
     const m = {};
     mine.forEach((c) => { m[c.category] = (m[c.category] ?? 0) + 1; });
@@ -575,23 +581,23 @@ function Analytics({ uni, mine }) {
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Stat icon={Icons.FolderKanban} label="Total projects" value={mine.length} color={R.hex} />
-        <Stat icon={Icons.CheckCircle2} label="Completed" value={completed} color="#059669" delay={0.08} />
-        <Stat icon={Icons.Users} label="Team members deployed" value={mine.reduce((s, c) => s + (c.team?.members.length ?? 0), 0)} color="#f59e0b" delay={0.16} />
-        <Stat icon={Icons.HeartHandshake} label="Citizens impacted" value={mine.reduce((s, c) => s + (c.impact?.beneficiaries ?? 0), 0)} color="#0891b2" delay={0.24} />
+        <Stat icon={Icons.FolderKanban} label={t('Total projects')} value={mine.length} color={R.hex} />
+        <Stat icon={Icons.CheckCircle2} label={t('Completed')} value={completed} color="#059669" delay={0.08} />
+        <Stat icon={Icons.Users} label={t('Team members deployed')} value={mine.reduce((s, c) => s + (c.team?.members.length ?? 0), 0)} color="#f59e0b" delay={0.16} />
+        <Stat icon={Icons.HeartHandshake} label={t('Citizens impacted')} value={mine.reduce((s, c) => s + (c.impact?.beneficiaries ?? 0), 0)} color="#0891b2" delay={0.24} />
       </div>
       <div className="grid lg:grid-cols-2 gap-4">
         <div className="card p-5">
-          <p className="font-display font-bold text-slate-900 mb-2">Projects by lifecycle stage</p>
+          <p className="font-display font-bold text-slate-900 mb-2">{t('Projects by lifecycle stage')}</p>
           <VBar data={byStage} color={R.hex} />
         </div>
         <div className="card p-5">
-          <p className="font-display font-bold text-slate-900 mb-2">Projects by domain</p>
-          {byCat.length ? <CategoryDonut data={byCat} /> : <Empty icon={Icons.PieChart} title="No project data yet" />}
+          <p className="font-display font-bold text-slate-900 mb-2">{t('Projects by domain')}</p>
+          {byCat.length ? <CategoryDonut data={byCat} /> : <Empty icon={Icons.PieChart} title={t('No project data yet')} />}
         </div>
       </div>
       <div className="card p-5">
-        <p className="font-display font-bold text-slate-900 mb-3">Institutional capability profile</p>
+        <p className="font-display font-bold text-slate-900 mb-3">{t('Institutional capability profile')}</p>
         <div className="grid sm:grid-cols-3 gap-4">
           <div className="text-center">
             <ScoreRing value={Math.round(uni.rating * 20)} color={R.hex} size={92} label={uni.rating.toFixed(1)} sub="rating" />
@@ -659,8 +665,6 @@ function PrototypeShowcase({ uni, mine, prototypes }) {
     const targetChallenge = mine.find((c) => c.id === selectedChallengeId);
 
     // Save to Supabase Database
-    insertPrototypeInDb(prototypePayload, targetChallenge).catch((err) => console.warn('Supabase DB prototype save note:', err));
-    updateChallengeInDb(selectedChallengeId, { status: 'prototype' }).catch((err) => console.warn('Supabase DB challenge update note:', err));
 
     dispatch({
       type: 'PUBLISH_PROTOTYPE',
