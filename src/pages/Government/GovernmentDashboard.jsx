@@ -215,17 +215,23 @@ function Queue() {
 
 function ValidateModal({ challenge, onClose }) {
   const { dispatch, toast } = usePlatform();
+  const { t } = useShell();
+  const { user, profile } = useAuth();
   const [note, setNote] = useState('Field verified by block officer. Genuine and high impact.');
   const open = !!challenge;
 
+  const officerName = profile?.full_name || user?.user_metadata?.full_name || 'District Innovation Cell';
+
   const submit = () => {
+    if (!challenge) return;
     updateChallengeInDb(challenge.code || challenge.id, {
       status: 'validated',
-      validation: { status: 'validated', by: displayName || 'District Innovation Cell', note },
+      validation: { status: 'validated', by: officerName, note },
     }).catch((err) => console.warn('Supabase DB validation note:', err));
 
     dispatch({ type: 'VALIDATE', id: challenge.id, note });
-    toast(`${challenge.code} validated — routed to ${challenge.ai?.universityMatches.slice(0, 3).length ?? 3} universities`, 'success');
+    const matchCount = challenge.ai?.universityMatches?.slice(0, 3)?.length ?? 3;
+    toast(`${challenge.code} validated — routed to ${matchCount} universities`, 'success');
     onClose();
   };
 
@@ -241,21 +247,21 @@ function ValidateModal({ challenge, onClose }) {
             </div>
             <div className="rounded-xl bg-slate-50 p-3">
               <p className="text-[0.66rem] font-bold uppercase text-slate-400">Priority</p>
-              <p className="text-[0.86rem] font-bold text-slate-800">{challenge.priority?.score}/100 · {challenge.priority?.level}</p>
+              <p className="text-[0.86rem] font-bold text-slate-800">{challenge.priority?.score ?? 50}/100 · {challenge.priority?.level ?? 'MEDIUM'}</p>
             </div>
             <div className="rounded-xl bg-slate-50 p-3">
               <p className="text-[0.66rem] font-bold uppercase text-slate-400">Similar challenges</p>
-              <p className="text-[0.86rem] font-bold text-slate-800">{challenge.ai?.duplicates.length ?? 0} found</p>
+              <p className="text-[0.86rem] font-bold text-slate-800">{challenge.ai?.duplicates?.length ?? 0} found</p>
             </div>
           </div>
-          <MatchList kind="university" matches={challenge.ai?.universityMatches.slice(0, 3) ?? []} />
+          <MatchList kind="university" matches={challenge.ai?.universityMatches?.slice(0, 3) ?? []} />
           <div>
             <label className="label">Validation note</label>
             <textarea rows={2} className="field resize-none" value={note} onChange={(e) => setNote(e.target.value)} />
           </div>
           <div className="flex justify-end gap-2">
             <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
-            <button className="btn btn-primary" onClick={submit}><ShieldCheck size={15} />{t('govt.validateRoute')}</button>
+            <button className="btn btn-primary" onClick={submit}><ShieldCheck size={15} />{t ? t('govt.validateRoute') : 'Validate & Route'}</button>
           </div>
         </div>
       )}

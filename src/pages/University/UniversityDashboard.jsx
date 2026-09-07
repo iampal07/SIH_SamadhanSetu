@@ -181,6 +181,7 @@ function Incoming({ uni, incoming }) {
   const list = incoming.filter((c) => (cat === 'All' || c.category === cat) && c.title.toLowerCase().includes(q.toLowerCase()));
 
   const accept = (c) => {
+    updateChallengeInDb(c.code || c.id, { status: 'university_matched' }).catch((err) => console.warn('Supabase DB update note:', err));
     dispatch({ type: 'UNIVERSITY_ACCEPT', id: c.id, universityId: uni.id });
     toast(`${c.code} accepted — form your team next`, 'success');
     setOpen(null);

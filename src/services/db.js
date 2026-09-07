@@ -25,6 +25,8 @@ export async function uploadFileToSupabase(file, bucket = 'attachments', userId 
   }
 
   const isImage = file.type?.startsWith('image/') || file.name?.match(/\.(jpg|jpeg|png|webp|gif)$/i);
+  const isVideo = file.type?.startsWith('video/') || file.name?.match(/\.(mp4|webm|mov|mkv)$/i);
+  const fileType = isImage ? 'image' : isVideo ? 'video' : 'doc';
   const fileSizeMb = `${(file.size / (1024 * 1024)).toFixed(2)} MB`;
 
   if (!isSupabaseConfigured) {
@@ -33,7 +35,7 @@ export async function uploadFileToSupabase(file, bucket = 'attachments', userId 
       name: file.name,
       url: base64 || URL.createObjectURL(file),
       size: fileSizeMb,
-      type: isImage ? 'image' : 'doc',
+      type: fileType,
     };
   }
 
@@ -55,7 +57,7 @@ export async function uploadFileToSupabase(file, bucket = 'attachments', userId 
         name: file.name,
         url: base64 || URL.createObjectURL(file),
         size: fileSizeMb,
-        type: isImage ? 'image' : 'doc',
+        type: fileType,
       };
     }
 
@@ -67,7 +69,7 @@ export async function uploadFileToSupabase(file, bucket = 'attachments', userId 
       name: file.name,
       url: publicUrl,
       size: fileSizeMb,
-      type: isImage ? 'image' : 'doc',
+      type: fileType,
     };
   } catch (err) {
     console.error('File upload fallback:', err);
@@ -76,7 +78,7 @@ export async function uploadFileToSupabase(file, bucket = 'attachments', userId 
       name: file.name,
       url: base64 || URL.createObjectURL(file),
       size: fileSizeMb,
-      type: isImage ? 'image' : 'doc',
+      type: fileType,
     };
   }
 }

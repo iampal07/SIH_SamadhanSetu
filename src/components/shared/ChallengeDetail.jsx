@@ -87,6 +87,21 @@ export default function ChallengeDetail({ challenge, open, onClose, role = 'citi
                     Evidence & Attachments ({c.attachments.length})
                   </p>
                   
+                  {/* Video previews for video attachments */}
+                  {c.attachments.some(a => a.url && (a.type === 'video' || a.name?.match(/\.(mp4|webm|mov|mkv)$/i))) && (
+                    <div className="grid sm:grid-cols-2 gap-3 mb-3">
+                      {c.attachments.filter(a => a.url && (a.type === 'video' || a.name?.match(/\.(mp4|webm|mov|mkv)$/i))).map((vid, idx) => (
+                        <div key={idx} className="rounded-xl overflow-hidden border border-slate-200 bg-black aspect-video">
+                          <video
+                            src={vid.url}
+                            controls
+                            className="w-full h-full object-contain"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
                   {/* Photo previews for image attachments */}
                   {c.attachments.some(a => a.url && (a.type === 'image' || a.url.startsWith('data:image') || a.name?.match(/\.(jpg|jpeg|png|webp|gif)$/i))) && (
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-3">
@@ -101,6 +116,7 @@ export default function ChallengeDetail({ challenge, open, onClose, role = 'citi
                           <img
                             src={img.url}
                             alt={img.name}
+                            onError={(e) => { e.target.closest('a').style.display = 'none'; }}
                             className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
                           />
                           <div className="absolute inset-0 bg-slate-900/0 group-hover:bg-slate-900/40 transition flex items-center justify-center">

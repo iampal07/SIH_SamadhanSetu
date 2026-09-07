@@ -214,6 +214,10 @@ function JoinModal({ challenge, firm, onClose }) {
   const open = !!challenge;
 
   const submit = () => {
+    updateChallengeInDb(challenge.code || challenge.id, {
+      status: 'industry_matched',
+    }).catch((err) => console.warn('Supabase DB challenge update:', err));
+
     dispatch({ type: 'INDUSTRY_JOIN', id: challenge.id, industryId: firm.id, supports, amount });
     toast(`${firm.short} joined ${challenge.code}`, 'success');
     onClose();
@@ -403,7 +407,7 @@ function ScalableReadyProjects({ firm, list }) {
 
     // Save to Supabase Database
     insertIndustryCommitmentInDb(commitmentPayload).catch((err) => console.warn('Supabase DB commitment note:', err));
-    updateChallengeInDb(selectedProto.id, { status: 'pilot' }).catch((err) => console.warn('Supabase DB challenge status update note:', err));
+    updateChallengeInDb(selectedProto.code || selectedProto.id, { status: 'pilot' }).catch((err) => console.warn('Supabase DB challenge status update note:', err));
 
     dispatch({
       type: 'PLEDGE_SCALING_FUNDING',
