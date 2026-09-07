@@ -4,7 +4,7 @@ import { ShieldAlert, ArrowLeft, LayoutDashboard } from 'lucide-react';
 import { ROLES, getRolePortalPath } from '../../data/constants';
 
 export default function ProtectedRoute({ children, allowedRoles }) {
-  const { user, profile, role, loading, isDemoMode, loginAsDemoRole } = useAuth();
+  const { user, profile, role, accountRole, loading, isDemoMode, loginAsDemoRole, switchRole } = useAuth();
   const location = useLocation();
 
   if (loading) {
@@ -29,7 +29,7 @@ export default function ProtectedRoute({ children, allowedRoles }) {
     Boolean(profile?.role && localStorage.getItem('samadhan_onboarded_' + user.id) === 'true');
 
   // If authenticated but onboarding not completed, redirect to role onboarding
-  if (!role || !isOnboarded) {
+  if (!accountRole || !isOnboarded) {
     return <Navigate to="/onboarding" replace />;
   }
 
@@ -52,21 +52,23 @@ export default function ProtectedRoute({ children, allowedRoles }) {
             </p>
           </div>
 
-          {isDemoMode && (
-            <button
-              onClick={() => loginAsDemoRole(allowedRoles[0])}
-              className="btn btn-primary w-full justify-center"
-            >
-              Continue as {targetRoleMeta.label} (demo)
-            </button>
-          )}
+          <button
+            onClick={() => (isDemoMode ? loginAsDemoRole(targetPortalRole) : switchRole(targetPortalRole))}
+            className="btn btn-primary w-full justify-center"
+          >
+            Continue as {targetRoleMeta.label} (presentation mode)
+          </button>
+          <p className="text-[0.7rem] text-slate-400 -mt-1">
+            Your account role stays <b>{ROLES[accountRole]?.label ?? accountRole}</b> — this only changes which portal you are viewing.
+          </p>
 
           <div className="pt-2 flex flex-col gap-2">
             <Link
-              to={getRolePortalPath(role)}
-              className="btn btn-primary w-full justify-center"
+              to={getRolePortalPath(accountRole || role)}
+              onClick={() => switchRole(null)}
+              className="btn btn-ghost w-full justify-center"
             >
-              <LayoutDashboard size={16} /> Go to My {userRoleMeta.label} Workspace
+              <LayoutDashboard size={16} /> Go to my {(ROLES[accountRole] ?? userRoleMeta).label} workspace
             </Link>
             <Link
               to="/login"

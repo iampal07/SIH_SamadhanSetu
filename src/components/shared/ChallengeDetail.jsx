@@ -8,10 +8,11 @@ import { catMeta, ROLES, STAGE_INDEX } from '../../data/constants';
 import { Modal, Tabs, Chip, Bar, ScoreRing, Avatar, Counter, Empty } from './ui';
 import { AIClassification, AIPriority, AIDuplicates, MatchList, DisciplineWeb } from './AIPanel';
 import { LifecycleTrack, HistoryTimeline, StageBadge } from '../workflow/Lifecycle';
+import { EvidenceGallery, ActivityFeed, FeedbackList, projectStats } from '../workflow/ProjectProgress';
 import { fmtFull, fmtDate, timeAgo, priorityTone, cx } from '../../utils/format';
 
 export default function ChallengeDetail({ challenge, open, onClose, role = 'citizen', actions }) {
-  const { dispatch } = usePlatform();
+  const { dispatch, postUpdate } = usePlatform();
   const { t } = useShell();
   const [tab, setTab] = useState('overview');
   const [msg, setMsg] = useState('');
@@ -19,11 +20,15 @@ export default function ChallengeDetail({ challenge, open, onClose, role = 'citi
 
   const tabs = useMemo(() => {
     const tabsList = [{ key: 'overview', label: t('common.overview') }];
+    if (challenge?.attachments?.length) tabsList.push({ key: 'evidence', label: 'Evidence' });
     if (challenge?.ai) tabsList.push({ key: 'ai', label: t('common.aiInsights') });
     if (challenge?.team) tabsList.push({ key: 'team', label: t('common.team') });
     if (challenge?.proposal) tabsList.push({ key: 'project', label: t('common.milestones') });
+    if (challenge?.prototypeData) tabsList.push({ key: 'solution', label: 'Solution' });
     if (challenge?.partners?.length) tabsList.push({ key: 'partners', label: t('common.partners') });
     if (challenge?.impact) tabsList.push({ key: 'impact', label: t('common.impact') });
+    if (challenge?.feedback?.length) tabsList.push({ key: 'feedback', label: `Feedback (${challenge.feedback.length})` });
+    tabsList.push({ key: 'activity', label: 'Activity' });
     tabsList.push({ key: 'timeline', label: t('common.timeline') });
     tabsList.push({ key: 'discussion', label: t('common.discussion') });
     return tabsList;
@@ -36,10 +41,12 @@ export default function ChallengeDetail({ challenge, open, onClose, role = 'citi
   const p = c.priority ? priorityTone(c.priority.level) : null;
   const activeTab = tabs.some((t) => t.key === tab) ? tab : 'overview';
 
+  const stats = projectStats(c);
+
   const send = () => {
     if (!msg.trim()) return;
-    dispatch({
-      type: 'POST_UPDATE', id: c.id, role,
+    postUpdate(c, {
+      role,
       by: role === 'citizen' ? 'Citizen' : role === 'varsity' ? (c.university?.short ?? 'University Team') : role === 'industry' ? 'Industry Partner' : 'District Cell',
       text: msg.trim(),
     });
@@ -81,68 +88,13 @@ export default function ChallengeDetail({ challenge, open, onClose, role = 'citi
                 <Facts label="Community support" value={fmtFull(c.upvotes)} sub="endorsements" icon={Icons.ThumbsUp} />
                 <Facts label="Submitted" value={fmtDate(c.createdAt)} sub={c.citizen.name} icon={Icons.Calendar} />
               </div>
-              {c.attachments?.length > 0 && (
-                <div>
-                  <p className="text-[0.72rem] font-bold uppercase tracking-wide text-slate-400 mb-2">
-                    Evidence & Attachments ({c.attachments.length})
-                  </p>
-                  
-                  {/* Video previews for video attachments */}
-                  {c.attachments.some(a => a.url && (a.type === 'video' || a.name?.match(/\.(mp4|webm|mov|mkv)$/i))) && (
-                    <div className="grid sm:grid-cols-2 gap-3 mb-3">
-                      {c.attachments.filter(a => a.url && (a.type === 'video' || a.name?.match(/\.(mp4|webm|mov|mkv)$/i))).map((vid, idx) => (
-                        <div key={idx} className="rounded-xl overflow-hidden border border-slate-200 bg-black aspect-video">
-                          <video
-                            src={vid.url}
-                            controls
-                            className="w-full h-full object-contain"
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Photo previews for image attachments */}
-                  {c.attachments.some(a => a.url && (a.type === 'image' || a.url.startsWith('data:image') || a.name?.match(/\.(jpg|jpeg|png|webp|gif)$/i))) && (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-3">
-                      {c.attachments.filter(a => a.url && (a.type === 'image' || a.url.startsWith('data:image') || a.name?.match(/\.(jpg|jpeg|png|webp|gif)$/i))).map((img, idx) => (
-                        <a
-                          key={idx}
-                          href={img.url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="group relative rounded-xl overflow-hidden border border-slate-200 bg-slate-100 aspect-video block shadow-sm"
-                        >
-                          <img
-                            src={img.url}
-                            alt={img.name}
-                            onError={(e) => { e.target.closest('a').style.display = 'none'; }}
-                            className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
-                          />
-                          <div className="absolute inset-0 bg-slate-900/0 group-hover:bg-slate-900/40 transition flex items-center justify-center">
-                            <span className="opacity-0 group-hover:opacity-100 text-white text-[0.7rem] font-bold px-2 py-1 rounded bg-black/60 transition">
-                              View Full Photo
-                            </span>
-                          </div>
-                        </a>
-                      ))}
-                    </div>
-                  )}
-
-                  <div className="flex flex-wrap gap-2">
-                    {c.attachments.map((a, i) => (
-                      <a
-                        key={a.name || i}
-                        href={a.url || '#'}
-                        target={a.url ? "_blank" : undefined}
-                        rel="noreferrer"
-                        className="inline-flex items-center gap-2 text-[0.75rem] font-medium text-slate-600 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg px-2.5 py-1.5 transition"
-                      >
-                        <Paperclip size={12} className="text-slate-400" />{a.name}
-                        <span className="text-slate-400 font-mono text-[0.68rem]">{a.size}</span>
-                      </a>
-                    ))}
-                  </div>
+              {c.attachments?.length > 0 && <EvidenceGallery attachments={c.attachments} />}
+              {c.university && (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <Facts label="Completion" value={`${stats.completion}%`} sub={stats.stage.label} icon={Icons.Gauge} />
+                  <Facts label="Milestones" value={stats.milestonesTotal ? `${stats.milestonesDone}/${stats.milestonesTotal}` : '—'} sub="completed" icon={Icons.ListChecks} />
+                  <Facts label="Team" value={stats.teamSize || '—'} sub={c.team?.name ?? 'not formed yet'} icon={Icons.Users} />
+                  <Facts label="Industry partners" value={stats.partners || '—'} sub={c.partners?.map((p) => p.short).join(', ') || 'none yet'} icon={Icons.Factory} />
                 </div>
               )}
               {c.validation?.note && (
@@ -153,6 +105,54 @@ export default function ChallengeDetail({ challenge, open, onClose, role = 'citi
                   <p className="text-[0.82rem] text-slate-700 mt-1">{c.validation.note}</p>
                 </div>
               )}
+            </motion.div>
+          )}
+
+          {activeTab === 'evidence' && (
+            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+              <EvidenceGallery attachments={c.attachments ?? []} />
+            </motion.div>
+          )}
+
+          {activeTab === 'solution' && c.prototypeData && (
+            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
+              <div className="card p-4">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Chip color={ROLES.varsity.deep} bg={ROLES.varsity.soft}>TRL {c.prototypeData.trl}</Chip>
+                  {STAGE_INDEX[c.status] >= STAGE_INDEX.prototype && <Chip color="#059669" bg="#ecfdf5"><CheckCircle2 size={11} />Prototype Ready</Chip>}
+                </div>
+                <p className="font-display font-bold text-slate-900 mt-2">{c.prototypeData.title}</p>
+                <p className="text-[0.84rem] text-slate-600 mt-1.5 leading-relaxed">{c.prototypeData.abstract}</p>
+                <div className="flex flex-wrap gap-4 mt-3 pt-3 border-t text-[0.78rem]" style={{ borderColor: 'var(--border)' }}>
+                  <span className="text-slate-500">Scaling budget <b className="text-slate-800">₹{Number(c.prototypeData.estimatedFunding || 0).toLocaleString('en-IN')}</b></span>
+                  <span className="text-slate-500">Funding secured <b className="text-slate-800">₹{Number(c.prototypeData.fundingRaised || 0).toLocaleString('en-IN')}</b></span>
+                  <span className="text-slate-500">Lead <b className="text-slate-800">{c.prototypeData.facultyLead}</b></span>
+                </div>
+              </div>
+              {(c.prototypeData.integrationRequirements ?? []).length > 0 && (
+                <div className="card p-4">
+                  <p className="text-[0.72rem] font-bold uppercase tracking-wide text-slate-400 mb-2">Integration requirements</p>
+                  <div className="space-y-1.5">
+                    {c.prototypeData.integrationRequirements.map((req, i) => (
+                      <div key={i} className="flex items-start gap-2 text-[0.8rem] text-slate-600">
+                        <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 mt-1.5 shrink-0" />{req}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          )}
+
+          {activeTab === 'feedback' && (
+            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+              <FeedbackList challenge={c} />
+            </motion.div>
+          )}
+
+          {activeTab === 'activity' && (
+            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+              <ActivityFeed challenge={c} />
             </motion.div>
           )}
 

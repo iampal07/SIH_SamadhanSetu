@@ -94,6 +94,17 @@ const RAW = [
   },
 ];
 
+/* Representative citizen-evidence photographs used by the seeded demo dataset. */
+const EVIDENCE_PHOTOS = [
+  'photo-1541544537156-7627a7a4aa1c',
+  'photo-1583912268183-211f5a4b1c4f',
+  'photo-1594398901394-4e34939a4fd0',
+  'photo-1509390144018-eeaf65052242',
+  'photo-1532601224476-15c79f2f7a51',
+  'photo-1516937941344-00b4e0337589',
+  'photo-1558618666-fcd25c85cd64',
+];
+
 const MILESTONE_TEMPLATES = (cat) => [
   { title: 'Field survey and baseline data collection', owner: 'University Team', span: 14 },
   { title: 'Requirement validation with community', owner: 'Citizen + University', span: 24 },
@@ -158,7 +169,9 @@ function buildTeam(universityId, category) {
 
 function buildMilestones(category, createdDays, reachedIndex) {
   return MILESTONE_TEMPLATES(category).map((m, i) => {
-    const doneCut = Math.round(((reachedIndex - 5) / 6) * 9);
+    const first = STAGE_INDEX.proposal_created;
+    const span = Math.max(1, STAGES.length - 1 - first);
+    const doneCut = Math.round(((reachedIndex - first) / span) * 9);
     const status = i < doneCut ? 'completed' : i === doneCut ? 'in_progress' : 'pending';
     return {
       id: `M${i + 1}`,
@@ -180,8 +193,12 @@ export function buildSeedChallenges() {
       citizen: { name: r.citizen, id: `cit-${r.id}` },
       createdAt: ago(r.days),
       attachments: [
-        { name: `${r.village.toLowerCase().replace(/\s+/g, '-')}-photo-1.jpg`, type: 'image', size: '1.4 MB' },
-        { name: 'community-signatures.pdf', type: 'doc', size: '320 KB' },
+        {
+          name: `${r.village.toLowerCase().replace(/\s+/g, '-')}-evidence-1.jpg`,
+          type: 'image', size: '1.4 MB',
+          url: `https://images.unsplash.com/${EVIDENCE_PHOTOS[built.length % EVIDENCE_PHOTOS.length]}?w=900&q=70&auto=format&fit=crop`,
+        },
+        { name: 'community-signatures.pdf', type: 'doc', size: '320 KB', url: '' },
       ],
     };
     const ai = runAnalysis(base, built);

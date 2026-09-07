@@ -1,21 +1,25 @@
 export const STAGES = [
-  { key: 'submitted',          label: 'Submitted',          short: 'Submitted',  owner: 'citizen',  icon: 'Send' },
-  { key: 'ai_analysed',        label: 'AI Analysed',        short: 'AI',         owner: 'ai',       icon: 'Sparkles' },
-  { key: 'validated',          label: 'Validated',          short: 'Validated',  owner: 'govt',     icon: 'ShieldCheck' },
-  { key: 'university_matched', label: 'University Matched', short: 'Matched',    owner: 'varsity',  icon: 'GraduationCap' },
-  { key: 'team_formed',        label: 'Team Formed',        short: 'Team',       owner: 'varsity',  icon: 'Users' },
-  { key: 'proposal_created',   label: 'Proposal Created',   short: 'Proposal',   owner: 'varsity',  icon: 'FileText' },
-  { key: 'industry_matched',   label: 'Industry Onboard',   short: 'Industry',   owner: 'industry', icon: 'Factory' },
-  { key: 'prototype',          label: 'Prototype',          short: 'Prototype',  owner: 'varsity',  icon: 'Wrench' },
-  { key: 'testing',            label: 'Testing',            short: 'Testing',    owner: 'varsity',  icon: 'FlaskConical' },
-  { key: 'pilot',              label: 'Pilot',              short: 'Pilot',      owner: 'industry', icon: 'Rocket' },
-  { key: 'deployment',         label: 'Deployment',         short: 'Deployed',   owner: 'govt',     icon: 'CheckCircle2' },
-  { key: 'impact_measured',    label: 'Impact Measured',    short: 'Impact',     owner: 'citizen',  icon: 'TrendingUp' },
+  { key: 'submitted',          label: 'Challenge Submitted', short: 'Submitted',  owner: 'citizen',  icon: 'Send' },
+  { key: 'ai_analysed',        label: 'AI Analysis',         short: 'AI',         owner: 'ai',       icon: 'Sparkles' },
+  { key: 'validated',          label: 'Government Validated',short: 'Validated',  owner: 'govt',     icon: 'ShieldCheck' },
+  { key: 'university_matched', label: 'University Accepted', short: 'Accepted',   owner: 'varsity',  icon: 'GraduationCap' },
+  { key: 'team_formed',        label: 'Team Formation',      short: 'Team',       owner: 'varsity',  icon: 'Users' },
+  { key: 'proposal_created',   label: 'Solution Development',short: 'Solution',   owner: 'varsity',  icon: 'FileText' },
+  { key: 'industry_matched',   label: 'Industry Support',    short: 'Industry',   owner: 'industry', icon: 'Factory' },
+  { key: 'prototype',          label: 'Prototype Ready',     short: 'Prototype',  owner: 'varsity',  icon: 'Wrench' },
+  { key: 'testing',            label: 'Field Testing',       short: 'Testing',    owner: 'varsity',  icon: 'FlaskConical' },
+  { key: 'pilot',              label: 'Pilot Deployment',    short: 'Pilot',      owner: 'industry', icon: 'Rocket' },
+  { key: 'govt_review',        label: 'Government Review',   short: 'Review',     owner: 'govt',     icon: 'Gavel' },
+  { key: 'deployment',         label: 'Deployed',            short: 'Deployed',   owner: 'govt',     icon: 'CheckCircle2' },
+  { key: 'community_feedback', label: 'Community Feedback',  short: 'Feedback',   owner: 'citizen',  icon: 'MessageSquareHeart' },
+  { key: 'impact_measured',    label: 'Impact Measured',     short: 'Impact',     owner: 'citizen',  icon: 'TrendingUp' },
 ];
 
 export const STAGE_INDEX = Object.fromEntries(STAGES.map((s, i) => [s.key, i]));
 export const stageMeta = (k) => STAGES[STAGE_INDEX[k]] ?? STAGES[0];
 export const stageAfter = (k) => STAGES[Math.min(STAGE_INDEX[k] + 1, STAGES.length - 1)].key;
+/** Percentage completion of a project derived purely from its lifecycle stage. */
+export const stageProgress = (k) => Math.round(((STAGE_INDEX[k] ?? 0) + 1) / STAGES.length * 100);
 
 export const ROLES = {
   citizen:  { key: 'citizen',  label: 'Citizen',    color: 'citizen',  hex: '#06b6d4', soft: '#ecfeff', deep: '#0e7490', grad: 'from-cyan-500 to-sky-500' },

@@ -8,6 +8,7 @@ import ChallengeCard from '../../components/cards/ChallengeCard';
 import ChallengeDetail, { MilestoneList } from '../../components/shared/ChallengeDetail';
 import { MatchList } from '../../components/shared/AIPanel';
 import { StageBadge } from '../../components/workflow/Lifecycle';
+import { ProjectProgressCard, EvidenceGallery, projectStats } from '../../components/workflow/ProjectProgress';
 import { Stat, Chip, Modal, SearchInput, Select, Empty, Counter, Bar, ScoreRing, Reveal, Tabs } from '../../components/shared/ui';
 import { VBar, CategoryDonut, FitRadar } from '../../components/charts/Charts';
 import { usePlatform } from '../../context/PlatformContext';
@@ -15,8 +16,7 @@ import { useShell } from '../../context/AppShellContext';
 import { INDUSTRIES } from '../../data/industries';
 import { CATEGORY_KEYS, ROLES, STAGE_INDEX, STAGES, SUPPORT_TYPES, catMeta } from '../../data/constants';
 import { matchIndustries } from '../../services/aiEngine';
-import { timeAgo, fmtFull, cx } from '../../utils/format';
-import { insertIndustryCommitmentInDb, updateChallengeInDb } from '../../services/db';
+import { fmtFull, cx } from '../../utils/format';
 
 const R = ROLES.industry;
 
@@ -211,21 +211,18 @@ function JoinModal({ challenge, firm, onClose }) {
   const { dispatch, toast } = usePlatform();
   const [supports, setSupports] = useState(firm.supports.slice(0, 3));
   const [amount, setAmount] = useState('₹18,50,000');
+  const [note, setNote] = useState('');
   const open = !!challenge;
 
   const submit = () => {
-    updateChallengeInDb(challenge.code || challenge.id, {
-      status: 'industry_matched',
-    }).catch((err) => console.warn('Supabase DB challenge update:', err));
-
-    dispatch({ type: 'INDUSTRY_JOIN', id: challenge.id, industryId: firm.id, supports, amount });
-    toast(`${firm.short} joined ${challenge.code}`, 'success');
+    dispatch({ type: 'INDUSTRY_JOIN', id: challenge.id, industryId: firm.id, supports, amount, note });
+    toast(`${firm.short} is now supporting ${challenge.code} — the university has been notified`, 'success');
     onClose();
   };
 
   return (
     <Modal open={open} onClose={onClose} accent={R.hex} width="max-w-xl"
-      title="Offer industry support" subtitle={challenge ? `${challenge.code} · ${challenge.title}` : ''}>
+      title="Provide industry support" subtitle={challenge ? `${challenge.code} · ${challenge.title}` : ''}>
       {challenge && (
         <div className="space-y-4">
           <div className="rounded-xl p-3.5" style={{ background: R.soft }}>
@@ -235,6 +232,7 @@ function JoinModal({ challenge, firm, onClose }) {
               {(challenge.industryNeed?.needs ?? []).map((n) => <Chip key={n} color={R.deep} bg="#fff">{n}</Chip>)}
             </div>
           </div>
+          {challenge.attachments?.length > 0 && <EvidenceGallery attachments={challenge.attachments} title="Citizen evidence" compact />}
           <div>
             <label className="label">What will you provide?</label>
             <div className="flex flex-wrap gap-1.5">
@@ -252,9 +250,14 @@ function JoinModal({ challenge, firm, onClose }) {
             <label className="label">Committed support value</label>
             <input className="field" value={amount} onChange={(e) => setAmount(e.target.value)} />
           </div>
+          <div>
+            <label className="label">Note to the university team</label>
+            <textarea rows={2} className="field resize-none text-xs" value={note} onChange={(e) => setNote(e.target.value)}
+              placeholder="e.g. Funded under our FY26 CSR budget with engineering mentorship from the Jamshedpur plant." />
+          </div>
           <div className="flex justify-end gap-2">
             <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
-            <button className="btn btn-primary" disabled={!supports.length} onClick={submit}><Handshake size={15} />Confirm partnership</button>
+            <button className="btn btn-primary" disabled={!supports.length} onClick={submit}><Handshake size={15} />Provide support</button>
           </div>
         </div>
       )}
@@ -264,29 +267,32 @@ function JoinModal({ challenge, firm, onClose }) {
 
 /* ── Portfolio ──────────────────────────────────────────────────────── */
 function Portfolio({ firm, portfolio }) {
-  const { dispatch, toast } = usePlatform();
+  const { challenges, dispatch, toast } = usePlatform();
   const [open, setOpen] = useState(null);
-
-  const nextStage = (c) => ['pilot', 'deployment'].find((s) => STAGE_INDEX[s] > STAGE_INDEX[c.status]);
+  const live = (c) => challenges.find((x) => x.id === c.id) ?? c;
 
   return (
     <div className="space-y-4">
       {portfolio.length === 0 ? (
         <Empty icon={Icons.Briefcase} title="Your portfolio is empty" sub="Support a validated university project to build your CSR portfolio." />
       ) : (
-        <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {portfolio.map((c, i) => {
-            const ns = nextStage(c);
+        <div className="grid xl:grid-cols-2 gap-4">
+          {portfolio.map((c) => {
+            const mySupport = c.partners.find((p) => p.id === firm.id);
             return (
-              <ChallengeCard key={c.id} challenge={c} index={i} onOpen={setOpen} accent={R.hex}
+              <ProjectProgressCard key={c.id} challenge={c} accent={R.hex} onOpen={setOpen}
                 actions={(
                   <>
-                    <Chip color={R.deep} bg={R.soft}>{c.partners.find((p) => p.id === firm.id)?.amount}</Chip>
-                    {ns && STAGE_INDEX[c.status] >= STAGE_INDEX.testing && (
+                    <Chip color={R.deep} bg={R.soft}><IndianRupee size={11} />{mySupport?.amount}</Chip>
+                    {(mySupport?.supports ?? []).map((s) => <Chip key={s} color="#64748b">{s}</Chip>)}
+                    {c.status === 'testing' && (
                       <button className="btn btn-sm text-white" style={{ background: R.hex }}
-                        onClick={() => { dispatch({ type: 'ADVANCE', id: c.id, stage: ns }); toast(`${c.code} advanced to ${STAGES[STAGE_INDEX[ns]].label}`, 'success'); }}>
-                        <ArrowRight size={13} />{STAGES[STAGE_INDEX[ns]].short}
+                        onClick={() => { dispatch({ type: 'ADVANCE', id: c.id, stage: 'pilot' }); toast(`${c.code} moved to pilot deployment`, 'success'); }}>
+                        <ArrowRight size={13} />Start pilot
                       </button>
+                    )}
+                    {STAGE_INDEX[c.status] >= STAGE_INDEX.pilot && STAGE_INDEX[c.status] < STAGE_INDEX.deployment && (
+                      <Chip color={ROLES.govt.deep} bg={ROLES.govt.soft}><ShieldCheck size={11} />With government for review</Chip>
                     )}
                   </>
                 )} />
@@ -294,7 +300,7 @@ function Portfolio({ firm, portfolio }) {
           })}
         </div>
       )}
-      <ChallengeDetail challenge={open} open={!!open} onClose={() => setOpen(null)} role="industry" />
+      <ChallengeDetail challenge={open ? live(open) : null} open={!!open} onClose={() => setOpen(null)} role="industry" />
     </div>
   );
 }
@@ -381,8 +387,10 @@ function ImpactView({ firm, portfolio }) {
 
 /* ── Industry Scalable Ready Projects & Adoption ─────────────────────── */
 function ScalableReadyProjects({ firm, list }) {
-  const { dispatch, toast } = usePlatform();
+  const { challenges, dispatch, toast } = usePlatform();
   const [selectedProto, setSelectedProto] = useState(null);
+  const [open, setOpen] = useState(null);
+  const live = (c) => challenges.find((x) => x.id === c.id) ?? c;
   const [fundingAmount, setFundingAmount] = useState('1200000');
   const [supports, setSupports] = useState(['Funding', 'Mentorship', 'Testing']);
   const [notes, setNotes] = useState('');
@@ -404,10 +412,6 @@ function ScalableReadyProjects({ firm, list }) {
       supports,
       notes,
     };
-
-    // Save to Supabase Database
-    insertIndustryCommitmentInDb(commitmentPayload).catch((err) => console.warn('Supabase DB commitment note:', err));
-    updateChallengeInDb(selectedProto.code || selectedProto.id, { status: 'pilot' }).catch((err) => console.warn('Supabase DB challenge status update note:', err));
 
     dispatch({
       type: 'PLEDGE_SCALING_FUNDING',
@@ -545,9 +549,24 @@ function ScalableReadyProjects({ firm, list }) {
                   </div>
                 </div>
 
+                {/* Problem context the industry needs before committing */}
+                <div className="rounded-xl p-3 space-y-2" style={{ background: 'var(--surface-2)' }}>
+                  <p className="text-[0.68rem] font-bold uppercase tracking-wide text-slate-400">Original problem · {c.village}, {c.district}</p>
+                  <p className="text-[0.78rem] text-slate-600 leading-relaxed line-clamp-2">{c.description}</p>
+                  <div className="flex flex-wrap items-center gap-2 text-[0.7rem] text-slate-500">
+                    <span className="inline-flex items-center gap-1"><Icons.Users size={12} />{fmtFull(c.affected)} affected</span>
+                    {c.team && <span className="inline-flex items-center gap-1"><Icons.GraduationCap size={12} />{c.team.name} · {c.team.members.length} members</span>}
+                    <span className="inline-flex items-center gap-1"><Icons.Gauge size={12} />{projectStats(c).completion}% complete</span>
+                  </div>
+                  {c.attachments?.length > 0 && <EvidenceGallery attachments={c.attachments} title="Citizen evidence" compact />}
+                </div>
+
                 {/* Card Action Footer */}
-                <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-3">
+                <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-3 flex-wrap">
                   <div className="flex items-center gap-2">
+                    <button onClick={() => setOpen(c)} className="btn btn-ghost btn-sm text-[0.72rem] px-2.5 py-1">
+                      <Icons.FileSearch size={12} /> Full project
+                    </button>
                     {proto.demoUrl && (
                       <a
                         href={proto.demoUrl}
@@ -577,7 +596,7 @@ function ScalableReadyProjects({ firm, list }) {
                     }}
                     className="btn btn-primary btn-sm px-4 py-1.5 text-xs font-bold"
                   >
-                    <HeartHandshake size={14} /> Adopt & Fund Scaling
+                    <HeartHandshake size={14} /> Provide Support
                   </button>
                 </div>
               </div>
@@ -585,6 +604,16 @@ function ScalableReadyProjects({ firm, list }) {
           })}
         </div>
       )}
+
+      <ChallengeDetail challenge={open ? live(open) : null} open={!!open} onClose={() => setOpen(null)} role="industry"
+        actions={open && (
+          <button className="btn btn-primary" onClick={() => {
+            const c = live(open);
+            setSelectedProto({ ...c, proto: c.prototypeData });
+            setFundingAmount(String(c.prototypeData?.estimatedFunding || 1200000));
+            setOpen(null);
+          }}><HeartHandshake size={15} />Provide support</button>
+        )} />
 
       {/* Adoption Commitment Modal */}
       <Modal

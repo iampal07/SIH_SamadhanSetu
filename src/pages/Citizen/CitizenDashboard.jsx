@@ -9,13 +9,16 @@ import DashboardLayout from '../../components/navigation/DashboardLayout';
 import ChallengeCard, { MiniRow } from '../../components/cards/ChallengeCard';
 import ChallengeDetail from '../../components/shared/ChallengeDetail';
 import { AIProcessing, AIClassification, AIPriority, AIDuplicates, MatchList } from '../../components/shared/AIPanel';
-import { LifecycleTrack } from '../../components/workflow/Lifecycle';
-import { Stat, Counter, Chip, Modal, SearchInput, Select, Empty, Tabs, ScoreRing, Reveal } from '../../components/shared/ui';
+import { LifecycleTrack, StageBadge } from '../../components/workflow/Lifecycle';
+import {
+  ProjectProgressCard, EvidenceGallery, FeedbackList, ActivityFeed, Stars, projectStats,
+} from '../../components/workflow/ProjectProgress';
+import { Stat, Counter, Chip, Modal, SearchInput, Select, Empty, Tabs, ScoreRing, Reveal, Bar } from '../../components/shared/ui';
 import { CategoryDonut } from '../../components/charts/Charts';
 import { usePlatform, useAnalytics } from '../../context/PlatformContext';
 import { useShell } from '../../context/AppShellContext';
 import { useAuth } from '../../context/AuthContext';
-import { uploadFileToSupabase, insertChallengeInDb } from '../../services/db';
+import { uploadFileToSupabase } from '../../services/db';
 import { CATEGORY_KEYS, DISTRICT_NAMES, ROLES, STAGE_INDEX, catMeta } from '../../data/constants';
 import { fmtFull, timeAgo, cx } from '../../utils/format';
 
@@ -25,6 +28,7 @@ const NAV = [
   { to: '/citizen', key: 'common.overview', label: 'Overview', icon: 'LayoutDashboard', end: true },
   { to: '/citizen/submit', key: 'citizen.nav.submit', label: 'Submit Challenge', icon: 'PlusCircle' },
   { to: '/citizen/challenges', key: 'citizen.nav.mine', label: 'My Challenges', icon: 'FolderKanban' },
+  { to: '/citizen/solutions', label: 'Deployed Solutions', icon: 'CheckCircle2' },
   { to: '/citizen/community', key: 'citizen.nav.community', label: 'Community Feed', icon: 'Globe2' },
   { to: '/citizen/impact', key: 'common.impact', label: 'Impact', icon: 'TrendingUp' },
 ];
@@ -37,8 +41,16 @@ export default function CitizenDashboard() {
     () => challenges.filter((c) => c.isMine || c.citizen?.id === 'cit-me' || (user?.id && c.citizen?.id === user.id)),
     [challenges, user]
   );
+  const deployed = useMemo(
+    () => challenges.filter((c) => STAGE_INDEX[c.status] >= STAGE_INDEX.deployment),
+    [challenges]
+  );
 
-  const nav = NAV.map((n) => (n.to === '/citizen/challenges' ? { ...n, badge: mine.length } : n));
+  const nav = NAV.map((n) => {
+    if (n.to === '/citizen/challenges') return { ...n, badge: mine.length };
+    if (n.to === '/citizen/solutions') return { ...n, badge: deployed.length };
+    return n;
+  });
 
   const displayName = profile?.full_name || user?.user_metadata?.full_name || 'Citizen';
   const displayDistrict = profile?.district || 'Ranchi';
@@ -52,6 +64,7 @@ export default function CitizenDashboard() {
         <Route index element={<Overview mine={mine} />} />
         <Route path="submit" element={<Submit />} />
         <Route path="challenges" element={<MyChallenges mine={mine} />} />
+        <Route path="solutions" element={<DeployedSolutions deployed={deployed} />} />
         <Route path="community" element={<Community />} />
         <Route path="impact" element={<ImpactView />} />
         <Route path="*" element={<Overview mine={mine} />} />
@@ -201,16 +214,8 @@ function Submit() {
       },
     };
 
-    // Save to Supabase Database
-    try {
-      const dbRes = await insertChallengeInDb(challengePayload);
-      if (dbRes?.dbId) {
-        challengePayload.dbId = dbRes.dbId;
-      }
-    } catch (dbErr) {
-      console.warn('Supabase DB save warning:', dbErr);
-    }
-
+    // The reducer's persistence layer writes the challenge, its media rows,
+    // notifications and the activity entry to Supabase in one consistent snapshot.
     dispatch({
       type: 'SUBMIT_CHALLENGE',
       payload: challengePayload,
@@ -278,9 +283,9 @@ function Submit() {
               </div>
 
               <div>
-                <label className="label">Photographs / documents (Stores in Supabase Storage)</label>
+                <label className="label">Photographs / videos / documents (stored in Supabase Storage)</label>
                 <label className="border-2 border-dashed border-slate-200 rounded-xl p-5 text-center block cursor-pointer hover:border-cyan-300 hover:bg-cyan-50/40 transition">
-                  <input type="file" multiple accept="image/*,.pdf,.doc,.docx" className="hidden"
+                  <input type="file" multiple accept="image/*,video/*,.pdf,.doc,.docx" className="hidden"
                     onChange={(e) => {
                       const chosen = Array.from(e.target.files ?? []);
                       setFileObjects((prev) => [...prev, ...chosen]);
@@ -341,7 +346,11 @@ function Submit() {
             </div>
 
             <div className="flex flex-wrap gap-2 justify-end">
-              <button className="btn btn-ghost" onClick={() => { setPhase('form'); setForm({ title: '', description: '', category: '', district: 'Ranchi', village: '', affected: '' }); setFiles([]); }}>
+              <button className="btn btn-ghost" onClick={() => {
+                setPhase('form');
+                setForm({ title: '', description: '', category: '', district: profile?.district || 'Ranchi', village: '', affected: '' });
+                setFileObjects([]); setNewId(null); setErr({});
+              }}>
                 Submit another
               </button>
               <button className="btn btn-ghost" onClick={() => nav('/government/challenges')}>See it in the Government queue <ArrowRight size={14} /></button>
@@ -469,5 +478,301 @@ function ImpactView() {
       )}
       <ChallengeDetail challenge={open} open={!!open} onClose={() => setOpen(null)} role="citizen" />
     </div>
+  );
+}
+
+/* ── Deployed solutions + citizen feedback ──────────────────────────── */
+function DeployedSolutions({ deployed }) {
+  const { challenges } = usePlatform();
+  const [open, setOpen] = useState(null);
+  const [q, setQ] = useState('');
+  const [dist, setDist] = useState('All');
+
+  const live = (c) => challenges.find((x) => x.id === c.id) ?? c;
+  const list = deployed.filter((c) => (
+    (dist === 'All' || c.district === dist)
+    && (c.title + c.description).toLowerCase().includes(q.toLowerCase())
+  ));
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-2xl p-5 sm:p-6 text-white relative overflow-hidden" style={{ background: 'linear-gradient(120deg,#059669,#0891b2)' }}>
+        <motion.div className="absolute -right-10 -top-14 w-52 h-52 rounded-full bg-white/10 anim-float" />
+        <div className="relative">
+          <p className="text-[0.72rem] font-bold uppercase tracking-widest opacity-80">Solutions delivered to communities</p>
+          <h2 className="font-display text-2xl sm:text-3xl font-extrabold mt-1">
+            {deployed.length} deployed solution{deployed.length === 1 ? '' : 's'} you can review
+          </h2>
+          <p className="text-white/85 text-[0.9rem] mt-1.5 max-w-xl">
+            Open any completed project to see the original problem, your photographs, the university team,
+            the industry partner and the result — then tell everyone whether the problem is actually solved.
+          </p>
+        </div>
+      </div>
+
+      <div className="card p-4 flex flex-wrap gap-3 items-center">
+        <SearchInput value={q} onChange={setQ} placeholder="Search deployed solutions…" className="flex-1 min-w-[220px]" />
+        <Select value={dist} onChange={setDist} options={['All', ...DISTRICT_NAMES]} className="w-auto" />
+        <Chip color="#059669" bg="#ecfdf5">{list.length} deployed</Chip>
+      </div>
+
+      {list.length === 0 ? (
+        <Empty icon={Icons.PackageCheck} title="No deployed solutions yet"
+          sub="As soon as the government approves and deploys a solution it appears here for community feedback." />
+      ) : (
+        <div className="grid xl:grid-cols-2 gap-4">
+          {list.map((c) => <DeployedCard key={c.id} challenge={c} onOpen={setOpen} />)}
+        </div>
+      )}
+
+      <SolutionModal challenge={open ? live(open) : null} onClose={() => setOpen(null)} />
+    </div>
+  );
+}
+
+function DeployedCard({ challenge: c, onOpen }) {
+  const cover = (c.attachments ?? []).find((a) => a.url && (a.type === 'image' || /\.(jpg|jpeg|png|webp|gif)$/i.test(a.name || '')));
+  const fb = c.feedback ?? [];
+  const avg = fb.length ? (fb.reduce((s, f) => s + (f.rating || 0), 0) / fb.length).toFixed(1) : null;
+
+  return (
+    <Reveal>
+      <div className="card card-hover overflow-hidden cursor-pointer h-full flex flex-col" onClick={() => onOpen(c)}>
+        {cover && (
+          <div className="h-36 bg-slate-100 overflow-hidden">
+            <img src={cover.url} alt={cover.name} className="w-full h-full object-cover" loading="lazy"
+              onError={(e) => { const p = e.target.parentElement; if (p) p.style.display = 'none'; }} />
+          </div>
+        )}
+        <div className="p-5 space-y-3 flex-1 flex flex-col">
+          <div className="flex items-center gap-2 flex-wrap">
+            <Chip color={catMeta(c.category).hex}>{c.category}</Chip>
+            <Chip color="#059669" bg="#ecfdf5"><CheckCircle2 size={11} />Deployed</Chip>
+            <StageBadge status={c.status} size="sm" />
+          </div>
+          <div>
+            <p className="font-display font-bold text-slate-900 leading-snug">{c.title}</p>
+            <p className="text-[0.74rem] text-slate-400 mt-0.5">
+              {c.village}, {c.district} · {c.university?.short ?? 'University'}
+              {c.partners?.length ? ` · ${c.partners.map((p) => p.short).join(', ')}` : ''}
+            </p>
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            <div className="rounded-xl p-2.5" style={{ background: 'var(--surface-2)' }}>
+              <p className="font-display text-[0.95rem] font-extrabold text-slate-900">{fmtFull(c.impact?.beneficiaries ?? c.affected)}</p>
+              <p className="text-[0.62rem] text-slate-400 font-semibold">people benefited</p>
+            </div>
+            <div className="rounded-xl p-2.5" style={{ background: 'var(--surface-2)' }}>
+              <p className="font-display text-[0.95rem] font-extrabold text-slate-900">{avg ?? '—'}</p>
+              <p className="text-[0.62rem] text-slate-400 font-semibold">community rating</p>
+            </div>
+            <div className="rounded-xl p-2.5" style={{ background: 'var(--surface-2)' }}>
+              <p className="font-display text-[0.95rem] font-extrabold text-slate-900">{fb.length}</p>
+              <p className="text-[0.62rem] text-slate-400 font-semibold">feedback given</p>
+            </div>
+          </div>
+          <div className="mt-auto pt-2 flex items-center justify-between">
+            {avg ? <Stars value={Math.round(avg)} /> : <span className="text-[0.72rem] text-slate-400">Be the first to review</span>}
+            <span className="text-[0.75rem] font-bold text-cyan-600 inline-flex items-center gap-1">
+              Open &amp; give feedback <ArrowRight size={13} />
+            </span>
+          </div>
+        </div>
+      </div>
+    </Reveal>
+  );
+}
+
+function SolutionModal({ challenge: c, onClose }) {
+  const { submitFeedback, toast } = usePlatform();
+  const { user, profile } = useAuth();
+  const [tab, setTab] = useState('story');
+  const [rating, setRating] = useState(5);
+  const [solved, setSolved] = useState(true);
+  const [comment, setComment] = useState('');
+  const [suggestions, setSuggestions] = useState('');
+  const [files, setFiles] = useState([]);
+  const [sending, setSending] = useState(false);
+
+  if (!c) return null;
+  const s = projectStats(c);
+
+  const send = async () => {
+    if (!comment.trim()) { toast('Please describe your experience before submitting', 'warn'); return; }
+    setSending(true);
+    const media = files.length
+      ? await Promise.all(files.map((f) => uploadFileToSupabase(f, 'attachments', user?.id)))
+      : [];
+    submitFeedback(c, {
+      rating, solved, comment: comment.trim(), suggestions: suggestions.trim(), media,
+      by: profile?.full_name || user?.user_metadata?.full_name || 'Citizen',
+      citizenId: user?.id,
+    });
+    toast('Thank you — your feedback is now visible to every stakeholder', 'success');
+    setSending(false); setComment(''); setSuggestions(''); setFiles([]);
+    setTab('reviews');
+  };
+
+  return (
+    <Modal open={!!c} onClose={onClose} width="max-w-4xl" accent="#059669"
+      title={c.title} subtitle={`${c.code} · ${c.village}, ${c.district} · deployed solution`}>
+      <div className="space-y-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <Chip color={catMeta(c.category).hex}>{c.category}</Chip>
+          <Chip color="#059669" bg="#ecfdf5"><CheckCircle2 size={11} />Deployed</Chip>
+          {c.university && <Chip color={ROLES.varsity.hex} bg={ROLES.varsity.soft}>{c.university.short}</Chip>}
+          {c.partners?.map((p) => <Chip key={p.id} color={ROLES.industry.hex} bg={ROLES.industry.soft}>{p.short}</Chip>)}
+          <Chip color="#0891b2" bg="#ecfeff">{s.completion}% complete</Chip>
+        </div>
+
+        <div className="rounded-2xl p-4" style={{ background: 'var(--surface-2)' }}>
+          <LifecycleTrack status={c.status} history={c.history} compact />
+        </div>
+
+        <Tabs accent="#059669" active={tab} onChange={setTab} tabs={[
+          { key: 'story', label: 'The full story' },
+          { key: 'feedback', label: 'Give feedback' },
+          { key: 'reviews', label: `Community reviews (${c.feedback?.length ?? 0})` },
+          { key: 'activity', label: 'Activity' },
+        ]} />
+
+        {tab === 'story' && (
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+            <div>
+              <p className="text-[0.72rem] font-bold uppercase tracking-wide text-slate-400 mb-1.5">Original problem reported by a citizen</p>
+              <p className="text-[0.88rem] text-slate-700 leading-relaxed">{c.description}</p>
+              <p className="text-[0.72rem] text-slate-400 mt-1.5">
+                Reported by {c.citizen?.name} · {c.village}, {c.district} · {timeAgo(c.createdAt)}
+              </p>
+            </div>
+
+            {c.attachments?.length > 0 && <EvidenceGallery attachments={c.attachments} title="Evidence submitted by the community" />}
+
+            {c.team && (
+              <div className="card p-4">
+                <p className="text-[0.72rem] font-bold uppercase tracking-wide text-slate-400 mb-2">University team</p>
+                <p className="font-display font-bold text-slate-900">{c.team.name} · {c.university?.name}</p>
+                <p className="text-[0.78rem] text-slate-500 mt-0.5">{c.team.members.map((m) => `${m.name} (${m.role})`).join(' · ')}</p>
+              </div>
+            )}
+
+            {c.partners?.length > 0 && (
+              <div className="card p-4">
+                <p className="text-[0.72rem] font-bold uppercase tracking-wide text-slate-400 mb-2">Industry support</p>
+                {c.partners.map((p) => (
+                  <p key={p.id} className="text-[0.82rem] text-slate-700">
+                    <b>{p.name}</b> — {(p.supports ?? []).join(', ')} · {p.amount}
+                  </p>
+                ))}
+              </div>
+            )}
+
+            {c.prototypeData && (
+              <div className="card p-4">
+                <p className="text-[0.72rem] font-bold uppercase tracking-wide text-slate-400 mb-2">Solution developed</p>
+                <p className="font-display font-bold text-slate-900">{c.prototypeData.title}</p>
+                <p className="text-[0.82rem] text-slate-600 mt-1 leading-relaxed">{c.prototypeData.abstract}</p>
+              </div>
+            )}
+
+            {c.impact && (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {c.impact.metrics.map((m) => (
+                  <div key={m.label} className="card p-3.5">
+                    <p className="font-display text-xl font-extrabold text-slate-900">
+                      <Counter to={m.value} decimals={m.value % 1 !== 0 ? 1 : 0} suffix={m.unit} />
+                    </p>
+                    <p className="text-[0.68rem] text-slate-500 font-semibold mt-0.5">{m.label}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </motion.div>
+        )}
+
+        {tab === 'feedback' && (
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+            <div>
+              <label className="label">How would you rate this solution?</label>
+              <div className="flex items-center gap-2">
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <button key={n} type="button" onClick={() => setRating(n)}
+                    className={cx('w-10 h-10 rounded-xl grid place-items-center border transition',
+                      n <= rating ? 'bg-amber-50 border-amber-400 text-amber-500' : 'border-slate-200 text-slate-300 hover:border-slate-300')}>
+                    <Icons.Star size={20} fill={n <= rating ? 'currentColor' : 'none'} />
+                  </button>
+                ))}
+                <span className="text-[0.8rem] font-bold text-slate-500 ml-1">{rating}/5</span>
+              </div>
+            </div>
+
+            <div>
+              <label className="label">Did this actually solve the problem?</label>
+              <div className="flex gap-2 flex-wrap">
+                <button type="button" onClick={() => setSolved(true)}
+                  className={cx('btn btn-sm', solved ? 'text-white' : 'btn-ghost')} style={solved ? { background: '#059669' } : undefined}>
+                  <CheckCircle2 size={14} />Yes, the problem is solved
+                </button>
+                <button type="button" onClick={() => setSolved(false)}
+                  className={cx('btn btn-sm', !solved ? 'text-white' : 'btn-ghost')} style={!solved ? { background: '#d97706' } : undefined}>
+                  <Icons.AlertTriangle size={14} />Not fully
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label className="label">Your feedback *</label>
+              <textarea rows={3} className="field resize-none" value={comment} onChange={(e) => setComment(e.target.value)}
+                placeholder="What changed for your family and neighbours after this solution was deployed?" />
+            </div>
+
+            <div>
+              <label className="label">Improvement suggestions</label>
+              <textarea rows={2} className="field resize-none" value={suggestions} onChange={(e) => setSuggestions(e.target.value)}
+                placeholder="What could be improved or extended next?" />
+            </div>
+
+            <div>
+              <label className="label">Additional photo / video evidence (optional)</label>
+              <label className="border-2 border-dashed rounded-xl p-4 text-center block cursor-pointer hover:border-cyan-300 hover:bg-cyan-50/40 transition"
+                style={{ borderColor: 'var(--border-strong)' }}>
+                <input type="file" multiple accept="image/*,video/*" className="hidden"
+                  onChange={(e) => setFiles((prev) => [...prev, ...Array.from(e.target.files ?? [])])} />
+                <Upload size={20} className="mx-auto text-slate-300 mb-1" />
+                <p className="text-[0.8rem] font-semibold text-slate-600">Attach a photo or video of the deployed solution</p>
+              </label>
+              {files.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                  {files.map((f, i) => (
+                    <span key={i} className="chip bg-slate-100 text-slate-600">
+                      {f.name}
+                      <button type="button" onClick={() => setFiles((arr) => arr.filter((_, idx) => idx !== i))}><X size={11} /></button>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <button className="btn btn-primary" disabled={sending} onClick={send}>
+                <Send size={15} />{sending ? 'Submitting…' : 'Submit feedback'}
+              </button>
+            </div>
+          </motion.div>
+        )}
+
+        {tab === 'reviews' && (
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+            <FeedbackList challenge={c} />
+          </motion.div>
+        )}
+
+        {tab === 'activity' && (
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+            <ActivityFeed challenge={c} />
+          </motion.div>
+        )}
+      </div>
+    </Modal>
   );
 }

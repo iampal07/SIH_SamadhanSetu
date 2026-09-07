@@ -49,6 +49,11 @@ export function AuthProvider({ children }) {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isDemoMode, setIsDemoMode] = useState(false);
+  /* Presentation override: lets one signed-in account walk through every portal
+     during an SIH demo without losing the real Supabase identity. */
+  const [roleOverride, setRoleOverrideState] = useState(() => {
+    try { return localStorage.getItem('samadhan_role_override') || null; } catch { return null; }
+  });
 
   // Sync Supabase Auth State
   useEffect(() => {
@@ -170,9 +175,22 @@ export function AuthProvider({ children }) {
     return resolvedProfile;
   }, [user, isDemoMode]);
 
+  /** Switch the portal being viewed (presentation mode) without signing out. */
+  const switchRole = useCallback((roleKey) => {
+    setRoleOverrideState(roleKey);
+    try {
+      if (roleKey) localStorage.setItem('samadhan_role_override', roleKey);
+      else localStorage.removeItem('samadhan_role_override');
+    } catch { /* ignore */ }
+  }, []);
+
+  const clearRoleOverride = useCallback(() => switchRole(null), [switchRole]);
+
   // Sign out
   const logout = useCallback(async () => {
     localStorage.removeItem('samadhan_demo_user');
+    localStorage.removeItem('samadhan_role_override');
+    setRoleOverrideState(null);
     setIsDemoMode(false);
     setUser(null);
     setProfile(null);
@@ -208,7 +226,11 @@ export function AuthProvider({ children }) {
     user,
     session,
     profile,
-    role: profile?.role || null,
+    role: roleOverride || profile?.role || null,
+    accountRole: profile?.role || null,
+    roleOverride,
+    switchRole,
+    clearRoleOverride,
     loading,
     isDemoMode,
     isSupabaseConfigured,
@@ -218,7 +240,8 @@ export function AuthProvider({ children }) {
     loginAsDemoRole,
     completeOnboarding,
     logout,
-  }), [user, session, profile, loading, isDemoMode, loginWithPassword, registerWithPassword, loginAsDemoRole, completeOnboarding, logout]);
+  }), [user, session, profile, loading, isDemoMode, roleOverride, switchRole, clearRoleOverride,
+    loginWithPassword, registerWithPassword, loginAsDemoRole, completeOnboarding, logout]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

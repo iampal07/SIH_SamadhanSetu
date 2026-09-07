@@ -24,9 +24,9 @@ export default function DashboardLayout({ role, nav, title, subtitle, user, chil
   const [open, setOpen] = useState(false);
   const [bell, setBell] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
-  const { dispatch } = usePlatform();
+  const { markRead, loading: syncing, syncError, persistent } = usePlatform();
   const { list, unread } = useNotifications(role);
-  const { profile, logout, isDemoMode, loginAsDemoRole } = useAuth();
+  const { profile, logout, isDemoMode, loginAsDemoRole, switchRole, roleOverride, accountRole } = useAuth();
   const { t } = useShell();
   const navigate = useNavigate();
   const loc = useLocation();
@@ -89,7 +89,7 @@ export default function DashboardLayout({ role, nav, title, subtitle, user, chil
         <div className={cx('flex gap-1.5', collapsed && 'flex-col items-center')}>
           {SWITCH.filter((s) => s.role !== role).map((s) => (
             <Link key={s.to} to={s.to} title={ROLES[s.role].label}
-              onClick={() => { if (isDemoMode) loginAsDemoRole(s.role); }}
+              onClick={() => { if (isDemoMode) loginAsDemoRole(s.role); else switchRole(s.role); }}
               className="flex-1 grid place-items-center h-8 rounded-lg text-[0.68rem] font-bold transition hover:scale-105"
               style={{ background: ROLES[s.role].soft, color: ROLES[s.role].deep }}>
               {collapsed ? ROLES[s.role].label[0] : t(`role.${s.role}`, ROLES[s.role].label)}
@@ -153,21 +153,27 @@ export default function DashboardLayout({ role, nav, title, subtitle, user, chil
                       <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: 'var(--border)' }}>
                         <p className="font-display font-bold text-[0.9rem]">{t('common.notifications')}</p>
                         <button className="text-[0.72rem] font-bold inline-flex items-center gap-1" style={{ color: r.hex }}
-                          onClick={() => dispatch({ type: 'READ_NOTIFICATIONS', role })}>
+                          onClick={() => markRead(role)}>
                           <CheckCheck size={13} />{t('common.markAllRead')}
                         </button>
                       </div>
                       <div className="max-h-[360px] overflow-y-auto">
                         {list.length === 0 && <p className="p-6 text-center text-sm text-slate-400">{t('common.nothingYet')}</p>}
                         {list.map((n) => (
-                          <div key={n.id} className={cx('px-4 py-3 border-b border-slate-50 last:border-0 flex gap-2.5', !n.read && 'bg-slate-50/70')}>
+                          <button key={n.id} type="button"
+                            onClick={() => { setBell(false); if (n.link) navigate(n.link); }}
+                            className={cx('w-full text-left px-4 py-3 border-b border-slate-50 last:border-0 flex gap-2.5 transition',
+                              n.link && 'hover:bg-slate-100/70', !n.read && 'bg-slate-50/70')}>
                             <span className="w-1.5 h-1.5 rounded-full mt-1.5 shrink-0"
                               style={{ background: n.tone === 'success' ? '#10b981' : n.tone === 'warn' ? '#f59e0b' : r.hex, opacity: n.read ? 0.3 : 1 }} />
-                            <div className="min-w-0">
-                              <p className="text-[0.8rem] text-slate-700 leading-snug">{n.text}</p>
-                              <p className="text-[0.66rem] text-slate-400 mt-0.5">{timeAgo(n.at)}</p>
-                            </div>
-                          </div>
+                            <span className="min-w-0 flex-1">
+                              <span className="block text-[0.8rem] text-slate-700 leading-snug">{n.text}</span>
+                              <span className="block text-[0.66rem] text-slate-400 mt-0.5">
+                                {n.challengeId ? `${n.challengeId} · ` : ''}{timeAgo(n.at)}
+                              </span>
+                            </span>
+                            {n.link && <Icons.ChevronRight size={14} className="text-slate-300 shrink-0 mt-1" />}
+                          </button>
                         ))}
                       </div>
                     </motion.div>
@@ -191,6 +197,29 @@ export default function DashboardLayout({ role, nav, title, subtitle, user, chil
             </div>
           </div>
         </header>
+
+        {(roleOverride || syncError || (!persistent && !syncing)) && (
+          <div className="px-4 sm:px-6 pt-3 max-w-[1400px] mx-auto space-y-2">
+            {roleOverride && (
+              <div className="flex flex-wrap items-center gap-2 rounded-xl px-3.5 py-2 text-[0.76rem] font-semibold"
+                style={{ background: r.soft, color: r.deep }}>
+                <Icons.Presentation size={14} />
+                Presentation mode — viewing the {r.label} portal. Your account role is {ROLES[accountRole]?.label ?? accountRole}.
+                <button className="underline ml-auto" onClick={() => { switchRole(null); navigate('/'); }}>
+                  Exit presentation mode
+                </button>
+              </div>
+            )}
+            {(syncError || !persistent) && (
+              <div className="flex flex-wrap items-center gap-2 rounded-xl px-3.5 py-2 text-[0.74rem] font-semibold bg-amber-50 text-amber-800">
+                <Icons.CloudOff size={14} />
+                {syncError
+                  ? `Supabase sync issue: ${syncError} — the workflow is running locally for now.`
+                  : 'Shared Supabase persistence is not enabled yet — run supabase_workflow_schema.sql in the Supabase SQL editor. The workflow still works locally.'}
+              </div>
+            )}
+          </div>
+        )}
 
         <AnimatePresence mode="wait">
           <motion.main key={loc.pathname}

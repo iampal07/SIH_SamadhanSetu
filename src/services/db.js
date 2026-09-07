@@ -1,5 +1,11 @@
 import { supabase, isSupabaseConfigured } from './supabase';
 
+/* Media belongs in Supabase Storage, never inside a database row. We only fall
+   back to an inline data URL for small files when Storage is unavailable, and
+   never for anything large — bigger files fall back to a session-only blob URL
+   which the persistence layer deliberately skips. */
+const INLINE_FALLBACK_LIMIT = 1.5 * 1024 * 1024;
+
 function fileToBase64(file) {
   return new Promise((resolve) => {
     if (!file) return resolve('');
@@ -8,6 +14,13 @@ function fileToBase64(file) {
     reader.onerror = () => resolve('');
     reader.readAsDataURL(file);
   });
+}
+
+async function localFallback(file, fileType, fileSizeMb) {
+  const url = file.size <= INLINE_FALLBACK_LIMIT
+    ? (await fileToBase64(file)) || URL.createObjectURL(file)
+    : URL.createObjectURL(file);
+  return { name: file.name, url, size: fileSizeMb, type: fileType, storagePath: null };
 }
 
 /**
@@ -29,57 +42,27 @@ export async function uploadFileToSupabase(file, bucket = 'attachments', userId 
   const fileType = isImage ? 'image' : isVideo ? 'video' : 'doc';
   const fileSizeMb = `${(file.size / (1024 * 1024)).toFixed(2)} MB`;
 
-  if (!isSupabaseConfigured) {
-    const base64 = await fileToBase64(file);
-    return {
-      name: file.name,
-      url: base64 || URL.createObjectURL(file),
-      size: fileSizeMb,
-      type: fileType,
-    };
-  }
+  if (!isSupabaseConfigured) return localFallback(file, fileType, fileSizeMb);
 
   try {
     const cleanFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-    const filePath = `${userId}/${Date.now()}_${cleanFileName}`;
+    const filePath = `${userId || 'anon'}/${Date.now()}_${cleanFileName}`;
 
     const { error: uploadError } = await supabase.storage
       .from(bucket)
-      .upload(filePath, file, {
-        cacheControl: '3600',
-        upsert: true,
-      });
+      .upload(filePath, file, { cacheControl: '3600', upsert: true, contentType: file.type || undefined });
 
     if (uploadError) {
-      console.warn('Supabase storage bucket notice (' + bucket + '):', uploadError.message, '- persisting as durable base64 data');
-      const base64 = await fileToBase64(file);
-      return {
-        name: file.name,
-        url: base64 || URL.createObjectURL(file),
-        size: fileSizeMb,
-        type: fileType,
-      };
+      console.warn(`Supabase storage notice (${bucket}): ${uploadError.message} — falling back to a local preview for this file.`);
+      return localFallback(file, fileType, fileSizeMb);
     }
 
-    const { data: { publicUrl } } = supabase.storage
-      .from(bucket)
-      .getPublicUrl(filePath);
+    const { data: { publicUrl } } = supabase.storage.from(bucket).getPublicUrl(filePath);
 
-    return {
-      name: file.name,
-      url: publicUrl,
-      size: fileSizeMb,
-      type: fileType,
-    };
+    return { name: file.name, url: publicUrl, size: fileSizeMb, type: fileType, storagePath: filePath };
   } catch (err) {
-    console.error('File upload fallback:', err);
-    const base64 = await fileToBase64(file);
-    return {
-      name: file.name,
-      url: base64 || URL.createObjectURL(file),
-      size: fileSizeMb,
-      type: fileType,
-    };
+    console.error('File upload failed, using local preview:', err);
+    return localFallback(file, fileType, fileSizeMb);
   }
 }
 

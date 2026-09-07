@@ -137,57 +137,77 @@ alter table public.challenges enable row level security;
 alter table public.prototypes_and_proposals enable row level security;
 alter table public.industry_commitments enable row level security;
 
--- 8. POLICIES
+-- 8. POLICIES  (every policy is dropped first so this script is safe to re-run)
 -- Profiles
+drop policy if exists "Public profiles are readable by all authenticated users" on public.profiles;
 create policy "Public profiles are readable by all authenticated users"
   on public.profiles for select using (true);
 
+drop policy if exists "Users can insert their own profile" on public.profiles;
 create policy "Users can insert their own profile"
   on public.profiles for insert with check (auth.uid() = id);
 
+drop policy if exists "Users can update their own profile" on public.profiles;
 create policy "Users can update their own profile"
   on public.profiles for update using (auth.uid() = id);
 
 -- Challenges
+drop policy if exists "Challenges are viewable by anyone authenticated" on public.challenges;
 create policy "Challenges are viewable by anyone authenticated"
   on public.challenges for select using (true);
 
+drop policy if exists "Authenticated citizens can insert challenges" on public.challenges;
 create policy "Authenticated citizens can insert challenges"
   on public.challenges for insert with check (auth.uid() = citizen_id or auth.uid() is not null);
 
+drop policy if exists "Challenge updates allow validation or owner changes" on public.challenges;
 create policy "Challenge updates allow validation or owner changes"
   on public.challenges for update using (true);
 
 -- Prototypes
+drop policy if exists "Prototypes are viewable by anyone authenticated" on public.prototypes_and_proposals;
 create policy "Prototypes are viewable by anyone authenticated"
   on public.prototypes_and_proposals for select using (true);
 
+drop policy if exists "University users can insert prototypes" on public.prototypes_and_proposals;
 create policy "University users can insert prototypes"
   on public.prototypes_and_proposals for insert with check (auth.uid() = university_id or auth.uid() is not null);
 
+drop policy if exists "University owners can update prototypes" on public.prototypes_and_proposals;
 create policy "University owners can update prototypes"
   on public.prototypes_and_proposals for update using (auth.uid() = university_id or true);
 
 -- Industry Commitments
+drop policy if exists "Industry commitments are viewable by authenticated users" on public.industry_commitments;
 create policy "Industry commitments are viewable by authenticated users"
   on public.industry_commitments for select using (true);
 
+drop policy if exists "Industry users can pledge commitments" on public.industry_commitments;
 create policy "Industry users can pledge commitments"
   on public.industry_commitments for insert with check (auth.uid() = industry_id or auth.uid() is not null);
 
 -- 9. STORAGE BUCKET CONFIGURATION FOR ATTACHMENTS & PROTOTYPE MEDIA
 insert into storage.buckets (id, name, public)
 values ('attachments', 'attachments', true)
-on conflict (id) do nothing;
+on conflict (id) do update set public = true;
 
+drop policy if exists "Public Access to attachments" on storage.objects;
 create policy "Public Access to attachments"
   on storage.objects for select
   using (bucket_id = 'attachments');
 
+drop policy if exists "Authenticated users can upload attachments" on storage.objects;
 create policy "Authenticated users can upload attachments"
   on storage.objects for insert
   with check (bucket_id = 'attachments');
 
+drop policy if exists "Users can update their attachments" on storage.objects;
 create policy "Users can update their attachments"
   on storage.objects for update
   using (bucket_id = 'attachments');
+
+-- =============================================================================
+-- NEXT STEP: run supabase_workflow_schema.sql to create the connected-workflow
+-- tables (projects, teams, milestones, solutions, industry_support, reviews,
+-- deployments, citizen_feedback, notifications, activity_log, challenge_media).
+-- =============================================================================

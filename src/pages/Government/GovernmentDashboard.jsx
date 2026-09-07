@@ -2,12 +2,13 @@ import { useMemo, useState } from 'react';
 import { Routes, Route, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as Icons from 'lucide-react';
-import { ShieldCheck, X, Sparkles, ArrowRight, AlertTriangle, MapPinned } from 'lucide-react';
+import { ShieldCheck, X, Sparkles, ArrowRight, AlertTriangle, MapPinned, Gavel, CheckCircle2, RotateCcw, Rocket } from 'lucide-react';
 import DashboardLayout from '../../components/navigation/DashboardLayout';
 import ChallengeCard from '../../components/cards/ChallengeCard';
 import ChallengeDetail from '../../components/shared/ChallengeDetail';
 import { AIProcessing, MatchList } from '../../components/shared/AIPanel';
 import { StageBadge, LifecycleTrack } from '../../components/workflow/Lifecycle';
+import { ProjectProgressCard, EvidenceGallery, FeedbackList, projectStats } from '../../components/workflow/ProjectProgress';
 import { Stat, Chip, Modal, SearchInput, Select, Empty, Counter, Bar, ScoreRing, Reveal, Tabs } from '../../components/shared/ui';
 import { TrendArea, CategoryDonut, HBar, VBar } from '../../components/charts/Charts';
 import JharkhandMap, { DistrictList } from '../../components/charts/JharkhandMap';
@@ -34,6 +35,7 @@ export default function GovernmentDashboard() {
   const nav = [
     { to: '/government', key: 'common.overview', label: 'Overview', icon: 'LayoutDashboard', end: true },
     { to: '/government/challenges', key: 'govt.nav.queue', label: 'Validation Queue', icon: 'ShieldCheck', badge: a.pending.length },
+    { to: '/government/review', label: 'Review & Deployment', icon: 'Gavel', badge: a.awaitingReview.length },
     { to: '/government/map', key: 'govt.nav.map', label: 'District Analytics', icon: 'Map' },
     { to: '/government/projects', key: 'govt.nav.projects', label: 'Project Monitoring', icon: 'Activity', badge: a.delayed.length },
     { to: '/government/ecosystem', key: 'govt.nav.ecosystem', label: 'Ecosystem', icon: 'Network' },
@@ -47,6 +49,7 @@ export default function GovernmentDashboard() {
       <Routes>
         <Route index element={<Overview analytics={a} />} />
         <Route path="challenges" element={<Queue />} />
+        <Route path="review" element={<ReviewQueue analytics={a} />} />
         <Route path="map" element={<MapAnalytics analytics={a} />} />
         <Route path="projects" element={<Monitoring analytics={a} />} />
         <Route path="ecosystem" element={<EcosystemView />} />
@@ -269,6 +272,165 @@ function ValidateModal({ challenge, onClose }) {
   );
 }
 
+/* ── Government review → approval → deployment ──────────────────────── */
+function ReviewQueue({ analytics: a }) {
+  const { challenges, dispatch, submitReview, toast } = usePlatform();
+  const { user, profile } = useAuth();
+  const [open, setOpen] = useState(null);
+  const [reviewFor, setReviewFor] = useState(null);
+  const [tab, setTab] = useState('pending');
+
+  const officer = profile?.full_name || user?.user_metadata?.full_name || 'District Innovation Cell';
+  const live = (c) => challenges.find((x) => x.id === c.id) ?? c;
+
+  const pending = a.awaitingReview.filter((c) => c.status !== 'govt_review');
+  const approved = challenges.filter((c) => c.status === 'govt_review');
+  const deployed = a.deployed;
+  const list = tab === 'pending' ? pending : tab === 'approved' ? approved : deployed;
+
+  const deploy = (c) => {
+    dispatch({ type: 'DEPLOY', id: c.id, by: officer });
+    toast(`${c.code} deployed — citizens can now see it and give feedback`, 'success');
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-2xl p-5 text-white relative overflow-hidden" style={{ background: `linear-gradient(120deg,${R.hex},#0f766e)` }}>
+        <motion.div className="absolute -right-12 -top-16 w-56 h-56 rounded-full bg-white/10 anim-float" />
+        <div className="relative">
+          <p className="text-[0.72rem] font-bold uppercase tracking-widest opacity-80">Prototype → Review → Deployment</p>
+          <h2 className="font-display text-2xl sm:text-3xl font-extrabold mt-1">
+            {pending.length} solution{pending.length === 1 ? '' : 's'} awaiting your review
+          </h2>
+          <p className="text-white/85 text-[0.9rem] mt-1.5 max-w-2xl">
+            Approve a prototype to clear it for deployment, or send it back to the university with the changes you need.
+            Every decision is written to the shared project record instantly.
+          </p>
+        </div>
+      </div>
+
+      <Tabs accent={R.hex} active={tab} onChange={setTab} tabs={[
+        { key: 'pending', label: `Awaiting review (${pending.length})` },
+        { key: 'approved', label: `Approved, ready to deploy (${approved.length})` },
+        { key: 'deployed', label: `Deployed (${deployed.length})` },
+      ]} />
+
+      {list.length === 0 ? (
+        <Empty icon={Icons.Gavel} title="Nothing in this stage"
+          sub="Prototypes published by universities land here for government review before deployment." />
+      ) : (
+        <div className="grid xl:grid-cols-2 gap-4">
+          {list.map((c) => (
+            <ProjectProgressCard key={c.id} challenge={c} accent={R.hex} onOpen={setOpen}
+              actions={(
+                <>
+                  {tab === 'pending' && (
+                    <button className="btn btn-sm text-white" style={{ background: R.hex }} onClick={() => setReviewFor(c)}>
+                      <Gavel size={13} />Review solution
+                    </button>
+                  )}
+                  {tab === 'approved' && (
+                    <button className="btn btn-sm text-white" style={{ background: R.hex }} onClick={() => deploy(c)}>
+                      <Rocket size={13} />Deploy solution
+                    </button>
+                  )}
+                  {tab === 'deployed' && STAGE_INDEX[c.status] < STAGE_INDEX.impact_measured && (
+                    <button className="btn btn-sm text-white" style={{ background: R.hex }}
+                      onClick={() => { dispatch({ type: 'ADVANCE', id: c.id, stage: 'impact_measured', by: officer }); toast(`Impact recorded for ${c.code}`, 'success'); }}>
+                      <ArrowRight size={13} />Record measured impact
+                    </button>
+                  )}
+                  {c.university && <Chip color={ROLES.varsity.deep} bg={ROLES.varsity.soft}>{c.university.short}</Chip>}
+                  {c.reviews?.[0] && (
+                    <Chip color={c.reviews[0].decision === 'approved' ? '#059669' : '#b45309'}
+                      bg={c.reviews[0].decision === 'approved' ? '#ecfdf5' : '#fff7ed'}>
+                      {c.reviews[0].decision === 'approved' ? <CheckCircle2 size={11} /> : <RotateCcw size={11} />}
+                      {c.reviews[0].decision === 'approved' ? 'Approved' : 'Changes requested'}
+                    </Chip>
+                  )}
+                </>
+              )} />
+          ))}
+        </div>
+      )}
+
+      <ChallengeDetail challenge={open ? live(open) : null} open={!!open} onClose={() => setOpen(null)} role="govt"
+        actions={open && STAGE_INDEX[live(open).status] < STAGE_INDEX.deployment && (
+          <button className="btn btn-primary" onClick={() => { setReviewFor(live(open)); setOpen(null); }}>
+            <Gavel size={15} />Review this solution
+          </button>
+        )} />
+
+      <ReviewModal challenge={reviewFor ? live(reviewFor) : null} officer={officer}
+        onClose={() => setReviewFor(null)}
+        onSubmit={(decision, note) => {
+          submitReview(reviewFor, { decision, note, reviewer: officer });
+          toast(decision === 'approved'
+            ? `${reviewFor.code} approved — ready for deployment`
+            : `${reviewFor.code} sent back to the university`, decision === 'approved' ? 'success' : 'warn');
+          setReviewFor(null);
+        }} />
+    </div>
+  );
+}
+
+function ReviewModal({ challenge, officer, onClose, onSubmit }) {
+  const [note, setNote] = useState('Prototype inspected in the field. Performance and safety verified.');
+  const open = !!challenge;
+  const proto = challenge?.prototypeData;
+
+  return (
+    <Modal open={open} onClose={onClose} accent={R.hex} width="max-w-2xl"
+      title="Government review of the solution" subtitle={challenge ? `${challenge.code} · ${challenge.title}` : ''}>
+      {challenge && (
+        <div className="space-y-4">
+          <div className="grid sm:grid-cols-3 gap-3">
+            <div className="rounded-xl p-3" style={{ background: 'var(--surface-2)' }}>
+              <p className="text-[0.66rem] font-bold uppercase text-slate-400">University</p>
+              <p className="text-[0.84rem] font-bold text-slate-800">{challenge.university?.short ?? '—'}</p>
+            </div>
+            <div className="rounded-xl p-3" style={{ background: 'var(--surface-2)' }}>
+              <p className="text-[0.66rem] font-bold uppercase text-slate-400">Industry partners</p>
+              <p className="text-[0.84rem] font-bold text-slate-800">{challenge.partners?.length || 0}</p>
+            </div>
+            <div className="rounded-xl p-3" style={{ background: 'var(--surface-2)' }}>
+              <p className="text-[0.66rem] font-bold uppercase text-slate-400">Milestones done</p>
+              <p className="text-[0.84rem] font-bold text-slate-800">
+                {projectStats(challenge).milestonesDone}/{projectStats(challenge).milestonesTotal || 0}
+              </p>
+            </div>
+          </div>
+
+          {proto && (
+            <div className="rounded-xl p-3.5" style={{ background: R.soft }}>
+              <p className="text-[0.78rem] font-bold" style={{ color: R.deep }}>{proto.title} · TRL {proto.trl}</p>
+              <p className="text-[0.82rem] text-slate-600 mt-1">{proto.abstract}</p>
+            </div>
+          )}
+
+          {challenge.attachments?.length > 0 && <EvidenceGallery attachments={challenge.attachments} title="Original citizen evidence" compact />}
+
+          <div>
+            <label className="label">Review note</label>
+            <textarea rows={3} className="field resize-none" value={note} onChange={(e) => setNote(e.target.value)} />
+            <p className="text-[0.7rem] text-slate-400 mt-1">Reviewed by {officer}</p>
+          </div>
+
+          <div className="flex flex-wrap justify-end gap-2">
+            <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
+            <button className="btn btn-ghost text-amber-700" onClick={() => onSubmit('changes_requested', note)}>
+              <RotateCcw size={15} />Request changes
+            </button>
+            <button className="btn btn-primary" onClick={() => onSubmit('approved', note)}>
+              <CheckCircle2 size={15} />Approve for deployment
+            </button>
+          </div>
+        </div>
+      )}
+    </Modal>
+  );
+}
+
 /* ── District analytics ─────────────────────────────────────────────── */
 function MapAnalytics({ analytics: a }) {
   const { challenges } = usePlatform();
@@ -366,7 +528,7 @@ function Monitoring({ analytics: a }) {
                 actions={(
                   <>
                     {c.university && <Chip color={ROLES.varsity.deep} bg={ROLES.varsity.soft}>{c.university.short}</Chip>}
-                    {STAGE_INDEX[c.status] === STAGE_INDEX.deployment && (
+                    {STAGE_INDEX[c.status] >= STAGE_INDEX.deployment && STAGE_INDEX[c.status] < STAGE_INDEX.impact_measured && (
                       <button className="btn btn-sm text-white" style={{ background: R.hex }}
                         onClick={() => { dispatch({ type: 'ADVANCE', id: c.id, stage: 'impact_measured' }); toast(`Impact recorded for ${c.code}`, 'success'); }}>
                         <ArrowRight size={13} />Record impact
