@@ -1,0 +1,38 @@
+[
+  {
+    "name": "IIT (ISM) Dhanbad",
+    "nirf_rank": 15,
+    "domains": ["mining", "water resources", "geoscience", "civil infrastructure", "environmental engineering"],
+    "past_projects": ["Mine water treatment pilot in Dhanbad coalfields", "Groundwater recharge modeling for rural Jharkhand"]
+  },
+  {
+    "name": "BIT Mesra",
+    "nirf_rank": 51,
+    "domains": ["software engineering", "urban development", "healthcare technology", "agriculture tech", "electronics"],
+    "past_projects": ["Smart irrigation IoT prototype", "Low-cost diagnostic device for rural clinics"]
+  },
+  {
+    "name": "NIT Jamshedpur",
+    "nirf_rank": 82,
+    "domains": ["civil infrastructure", "urban development", "energy", "manufacturing", "water resources"],
+    "past_projects": ["Flood-resilient road design for Jamshedpur", "Solar microgrid for tribal villages"]
+  },
+  {
+    "name": "Birsa Agricultural University (BAU) Ranchi",
+    "nirf_rank": 458,
+    "domains": ["agriculture", "horticulture", "forestry", "animal husbandry", "rural livelihoods"],
+    "past_projects": ["Watershed management study in Hazaribagh", "Organic farming transition pilot"]
+  },
+  {
+    "name": "AIIMS Deoghar",
+    "nirf_rank": 46,
+    "domains": ["public healthcare", "sanitation", "medical devices", "disease tracking", "malnutrition"],
+    "past_projects": ["Rural telemedicine rollout", "Tribal maternal health diagnostics"]
+  },
+  {
+    "name": "Xavier Institute of Social Service (XISS) Ranchi",
+    "nirf_rank": 999,
+    "domains": ["rural livelihoods", "sanitation", "accessibility", "social work", "public service delivery"],
+    "past_projects": ["Sanitation behavior change campaign in East Singhbhum", "Disability access audit of ULB offices"]
+  }
+]
