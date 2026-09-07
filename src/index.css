@@ -238,6 +238,30 @@ h1, h2, h3, h4, .font-display { font-family: var(--font-display); letter-spacing
 [data-theme="dark"] .ring-white { --tw-ring-color: var(--surface); }
 [data-theme="dark"] input[type="file"] + *, [data-theme="dark"] .field { color-scheme: dark; }
 
+/* Remap hardcoded Tailwind "slate" text/surface/border utilities onto the
+   semantic tokens in dark mode. Components across the app use text-slate-900
+   etc. directly (not just inside .card), which otherwise stays near-black on
+   a dark surface and becomes unreadable. */
+[data-theme="dark"] .text-slate-900,
+[data-theme="dark"] .text-slate-800,
+[data-theme="dark"] .text-slate-700 { color: var(--ink); }
+[data-theme="dark"] .text-slate-600,
+[data-theme="dark"] .text-slate-500,
+[data-theme="dark"] .text-slate-400,
+[data-theme="dark"] .text-slate-300 { color: var(--muted); }
+[data-theme="dark"] .bg-slate-50,
+[data-theme="dark"] .bg-slate-100,
+[data-theme="dark"] .bg-slate-200 { background-color: var(--surface-2); }
+[data-theme="dark"] .border-slate-50,
+[data-theme="dark"] .border-slate-100,
+[data-theme="dark"] .border-slate-200,
+[data-theme="dark"] .border-slate-300 { border-color: var(--border); }
+[data-theme="dark"] .hover\:bg-slate-50:hover,
+[data-theme="dark"] .hover\:bg-slate-100:hover { background-color: var(--surface-2); }
+[data-theme="dark"] .hover\:border-slate-200:hover,
+[data-theme="dark"] .hover\:border-slate-300:hover { border-color: var(--border-strong); }
+[data-theme="dark"] .placeholder\:text-slate-400::placeholder { color: var(--muted); }
+
 @keyframes float-y { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-14px) } }
 @keyframes spin-slow { to { transform: rotate(360deg) } }
 @keyframes pulse-ring { 0% { transform: scale(.85); opacity: .7 } 100% { transform: scale(2.2); opacity: 0 } }

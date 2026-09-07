@@ -94,8 +94,16 @@ create table if not exists public.challenges (
   priority_level text default 'MEDIUM',          -- LOW, MEDIUM, HIGH, CRITICAL
   attachments jsonb default '[]'::jsonb,
   upvotes integer default 1,
+  latitude double precision,                     -- optional, from browser geolocation on submit
+  longitude double precision,
+  location_accuracy_m double precision,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
+
+-- Ensure columns exist if table was already created before this migration
+alter table public.challenges add column if not exists latitude double precision;
+alter table public.challenges add column if not exists longitude double precision;
+alter table public.challenges add column if not exists location_accuracy_m double precision;
 
 -- 5. PROTOTYPES & READY PROJECTS (University Innovation & Industry Showcase)
 create table if not exists public.prototypes_and_proposals (

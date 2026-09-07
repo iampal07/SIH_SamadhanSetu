@@ -91,6 +91,9 @@ function assemble(ch, ctx) {
     district: ch.district,
     village: ch.village || ch.district,
     affected: ch.affected_population ?? 0,
+    location: (ch.latitude != null && ch.longitude != null)
+      ? { lat: ch.latitude, lng: ch.longitude, accuracy: ch.location_accuracy_m ?? null }
+      : null,
     citizen: { name: ch.citizen_name || 'Citizen', id: ch.citizen_id || `cit-${code}` },
     citizenId: ch.citizen_id,
     createdAt: ch.created_at,
@@ -293,6 +296,9 @@ export const repo = {
       district: payload.district,
       village: payload.village || payload.district,
       affected_population: Number(payload.affected) || 0,
+      latitude: Number.isFinite(payload.location?.lat) ? payload.location.lat : null,
+      longitude: Number.isFinite(payload.location?.lng) ? payload.location.lng : null,
+      location_accuracy_m: Number.isFinite(payload.location?.accuracy) ? payload.location.accuracy : null,
       citizen_id: asUuid(payload.citizenId),
       citizen_name: payload.citizenName || 'Citizen',
       status: 'submitted',

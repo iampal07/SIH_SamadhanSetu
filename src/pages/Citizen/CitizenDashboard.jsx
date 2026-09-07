@@ -19,6 +19,7 @@ import { useAuth } from '../../context/AuthContext';
 import { uploadFileToSupabase } from '../../services/db';
 import { CATEGORY_KEYS, DISTRICT_NAMES, ROLES, STAGE_INDEX, catMeta } from '../../data/constants';
 import { fmtFull, timeAgo, cx } from '../../utils/format';
+import { useGeolocation } from '../../utils/useGeolocation';
 
 const R = ROLES.citizen;
 
@@ -240,6 +241,7 @@ function Submit() {
   const [fileObjects, setFileObjects] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [err, setErr] = useState({});
+  const geo = useGeolocation();
   const phase = submitFlow.phase;              // form | submitting | analysing | result
   const newId = submitFlow.code;
   const submitError = submitFlow.error;
@@ -273,6 +275,7 @@ function Submit() {
     const res = await submitChallenge({
       ...form,
       media,
+      location: geo.status === 'granted' ? geo.location : null,
       citizenId: user?.id ?? null,
       citizenName: profile?.full_name || 'Citizen',
     });
@@ -343,6 +346,25 @@ function Submit() {
               </div>
 
               <div>
+                <label className="label">{t('onboard.location.title', 'Location for this report')} <span className="font-normal text-slate-400">({t('common.optional', 'optional')})</span></label>
+                <div className="flex flex-wrap items-center gap-2.5 p-3 rounded-xl border border-slate-200 bg-slate-50">
+                  <button type="button" className="btn btn-ghost btn-sm" disabled={geo.status === 'detecting'} onClick={geo.request}>
+                    <MapPin size={14} className={cx(geo.status === 'detecting' && 'animate-pulse')} />
+                    {geo.status === 'detecting' ? t('onboard.location.detecting', 'Detecting location…') : t('onboard.location.button', 'Use my current location')}
+                  </button>
+                  {geo.status === 'granted' && geo.location && (
+                    <span className="text-[0.76rem] font-semibold text-emerald-600">
+                      {t('onboard.location.granted', 'Location captured')} · {geo.location.lat.toFixed(4)}, {geo.location.lng.toFixed(4)}
+                    </span>
+                  )}
+                  {geo.status === 'denied' && <span className="text-[0.76rem] text-amber-600">{t('onboard.location.denied', 'Location permission denied — you can still submit without it')}</span>}
+                  {geo.status === 'unavailable' && <span className="text-[0.76rem] text-amber-600">{t('onboard.location.unavailable', 'Location unavailable on this device')}</span>}
+                  {geo.status === 'timeout' && <span className="text-[0.76rem] text-amber-600">{t('onboard.location.timeout', 'Location request timed out')}</span>}
+                  {geo.status === 'idle' && <span className="text-[0.76rem] text-slate-400">{t('onboard.location.optional', 'Optional — helps government and university teams locate the issue precisely')}</span>}
+                </div>
+              </div>
+
+              <div>
                 <label className="label">{t('citizen.form.filesLabel')}</label>
                 <label className="border-2 border-dashed border-slate-200 rounded-xl p-5 text-center block cursor-pointer hover:border-cyan-300 hover:bg-cyan-50/40 transition">
                   <input type="file" multiple accept="image/*,.pdf,.doc,.docx" className="hidden"
@@ -369,7 +391,7 @@ function Submit() {
               <div className="pt-2 flex justify-end gap-2">
                 <button type="button" className="btn btn-ghost" onClick={() => nav('/citizen')}>{t('common.cancel')}</button>
                 <button type="submit" disabled={uploading} className="btn btn-primary px-5">
-                  <Sparkles size={16} /> {uploading ? 'Uploading to Supabase...' : 'Submit & run AI analysis'}
+                  <Sparkles size={16} /> {uploading ? t('citizen.form.uploading', 'Uploading…') : t('citizen.form.submit')}
                 </button>
               </div>
             </div>
@@ -387,9 +409,9 @@ function Submit() {
             <div className="rounded-2xl p-5 text-white relative overflow-hidden" style={{ background: 'linear-gradient(120deg,#059669,#0891b2)' }}>
               <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', delay: 0.1 }}
                 className="w-12 h-12 rounded-2xl bg-white/20 grid place-items-center mb-3"><CheckCircle2 size={26} /></motion.div>
-              <h2 className="font-display text-xl font-extrabold">Challenge {created.code} submitted and analysed</h2>
+              <h2 className="font-display text-xl font-extrabold">{t('citizen.form.success', 'Challenge {code} submitted and analysed', { code: created.code })}</h2>
               <p className="text-white/85 text-[0.88rem] mt-1">
-                It is now in the district validation queue. You will be notified at every stage.
+                {t('citizen.form.successSub', 'It is now in the district validation queue. You will be notified at every stage.')}
               </p>
             </div>
 
