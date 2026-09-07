@@ -1,9 +1,11 @@
-import { createContext, useContext, useMemo, useReducer, useRef, useCallback } from 'react';
+import { createContext, useContext, useMemo, useReducer, useRef, useCallback, useEffect } from 'react';
 import { STAGE_INDEX, STAGES } from '../data/constants';
 import { buildSeedChallenges, SEED_NOTIFICATIONS } from '../data/seedChallenges';
 import { runAnalysis, matchIndustries, suggestDisciplines } from '../services/aiEngine';
 import { UNIVERSITIES, TALENT_POOL } from '../data/universities';
 import { INDUSTRIES } from '../data/industries';
+import { fetchChallengesFromDb } from '../services/db';
+import { supabase, isSupabaseConfigured } from '../services/supabase';
 
 const PlatformContext = createContext(null);
 
@@ -17,6 +19,66 @@ function makeNotifications(roles, text, tone = 'info', challengeId = null) {
   return roles.map((role) => ({
     id: uid('n'), role, text, tone, at: now(), read: false, challengeId,
   }));
+}
+
+export function mapDbChallengeToClient(rec) {
+  const code = rec.code || rec.id;
+  let attachments = [];
+  if (Array.isArray(rec.attachments)) {
+    attachments = rec.attachments;
+  } else if (typeof rec.attachments === 'string') {
+    try { attachments = JSON.parse(rec.attachments); } catch(e) {}
+  }
+
+  const base = {
+    id: code,
+    code,
+    dbId: rec.id,
+    title: rec.title,
+    description: rec.description,
+    category: rec.category || 'Public Services',
+    district: rec.district || 'Ranchi',
+    village: rec.village || rec.district,
+    affected: Number(rec.affected_population) || 0,
+    citizen: {
+      name: rec.citizen_name || 'Citizen',
+      id: rec.citizen_id || 'cit-me',
+    },
+    createdAt: rec.created_at || new Date().toISOString(),
+    attachments,
+    status: rec.status || 'submitted',
+    upvotes: Number(rec.upvotes) || 1,
+    priority: rec.priority_score ? {
+      score: rec.priority_score,
+      level: rec.priority_level || 'MEDIUM',
+    } : null,
+    validation: {
+      status: rec.validation_status || 'pending',
+      by: rec.validated_by || null,
+      at: null,
+      note: rec.validation_notes || null,
+    },
+    history: [
+      { stage: 'submitted', at: rec.created_at || new Date().toISOString(), by: 'citizen', note: 'Submitted by citizen' }
+    ],
+    partners: [],
+    milestones: [],
+    updates: [],
+    recommendedTo: [],
+    seeded: false,
+    fromSupabase: true,
+  };
+
+  try {
+    const ai = runAnalysis(base, []);
+    base.ai = ai;
+    if (!base.priority) base.priority = ai.priority;
+    base.recommendedTo = ai.universityMatches?.slice(0, 3).map((m) => m.id) || [];
+  } catch (err) {
+    console.warn('AI analysis error on DB challenge:', err);
+  }
+
+  return base;
 }
 
 const initialState = {
@@ -51,14 +113,24 @@ function advanceTo(c, stage, by, note) {
 
 function reducer(state, action) {
   switch (action.type) {
+    case 'MERGE_DB_CHALLENGES': {
+      const dbList = action.payload.map(mapDbChallengeToClient);
+      const dbCodes = new Set(dbList.map((c) => c.code));
+      const remaining = state.challenges.filter((c) => !dbCodes.has(c.code) && !dbCodes.has(c.id));
+      return {
+        ...state,
+        challenges: [...dbList, ...remaining],
+      };
+    }
+
     /* ── Citizen submits ────────────────────────────────────────────── */
     case 'SUBMIT_CHALLENGE': {
       const p = action.payload;
-      const id = `CH-${1200 + state.challenges.filter((c) => !c.seeded).length + 1}`;
+      const id = p.id || `CH-${1200 + state.challenges.filter((c) => !c.seeded).length + 1}`;
       const base = {
-        id, code: id, title: p.title, description: p.description,
+        id, code: p.code || id, title: p.title, description: p.description,
         district: p.district, village: p.village || p.district, affected: Number(p.affected) || 0,
-        citizen: { name: state.citizenName, id: 'cit-me' },
+        citizen: p.citizen || { name: state.citizenName, id: 'cit-me' },
         createdAt: now(),
         attachments: p.attachments ?? [],
         categoryOverride: p.category || null,
@@ -76,7 +148,7 @@ function reducer(state, action) {
       };
       return {
         ...state,
-        challenges: [challenge, ...state.challenges],
+        challenges: [challenge, ...state.challenges.filter((c) => c.id !== id && c.code !== id)],
         notifications: [
           ...makeNotifications(['govt'], `New challenge submitted — ${p.title}`, 'info', id),
           ...makeNotifications(['citizen'], `Your challenge ${id} was submitted successfully`, 'success', id),
@@ -336,6 +408,39 @@ function reducer(state, action) {
 export function PlatformProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, initialState);
   const timers = useRef([]);
+
+  // Sync Supabase Challenges into local state & listen for Realtime updates
+  useEffect(() => {
+    let mounted = true;
+
+    async function syncChallenges() {
+      if (!isSupabaseConfigured) return;
+      try {
+        const dbRecords = await fetchChallengesFromDb();
+        if (mounted && dbRecords && dbRecords.length > 0) {
+          dispatch({ type: 'MERGE_DB_CHALLENGES', payload: dbRecords });
+        }
+      } catch (err) {
+        console.warn('Could not sync challenges from Supabase:', err);
+      }
+    }
+
+    syncChallenges();
+
+    if (!isSupabaseConfigured) return;
+
+    const channel = supabase
+      .channel('realtime:challenges')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'challenges' }, () => {
+        syncChallenges();
+      })
+      .subscribe();
+
+    return () => {
+      mounted = false;
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   const toast = useCallback((text, tone = 'info') => dispatch({ type: 'TOAST', text, tone }), []);
 

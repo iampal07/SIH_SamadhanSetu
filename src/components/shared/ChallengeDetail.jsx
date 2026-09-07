@@ -83,13 +83,48 @@ export default function ChallengeDetail({ challenge, open, onClose, role = 'citi
               </div>
               {c.attachments?.length > 0 && (
                 <div>
-                  <p className="text-[0.72rem] font-bold uppercase tracking-wide text-slate-400 mb-1.5">Attachments</p>
+                  <p className="text-[0.72rem] font-bold uppercase tracking-wide text-slate-400 mb-2">
+                    Evidence & Attachments ({c.attachments.length})
+                  </p>
+                  
+                  {/* Photo previews for image attachments */}
+                  {c.attachments.some(a => a.url && (a.type === 'image' || a.url.startsWith('data:image') || a.name?.match(/\.(jpg|jpeg|png|webp|gif)$/i))) && (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-3">
+                      {c.attachments.filter(a => a.url && (a.type === 'image' || a.url.startsWith('data:image') || a.name?.match(/\.(jpg|jpeg|png|webp|gif)$/i))).map((img, idx) => (
+                        <a
+                          key={idx}
+                          href={img.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="group relative rounded-xl overflow-hidden border border-slate-200 bg-slate-100 aspect-video block shadow-sm"
+                        >
+                          <img
+                            src={img.url}
+                            alt={img.name}
+                            className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                          />
+                          <div className="absolute inset-0 bg-slate-900/0 group-hover:bg-slate-900/40 transition flex items-center justify-center">
+                            <span className="opacity-0 group-hover:opacity-100 text-white text-[0.7rem] font-bold px-2 py-1 rounded bg-black/60 transition">
+                              View Full Photo
+                            </span>
+                          </div>
+                        </a>
+                      ))}
+                    </div>
+                  )}
+
                   <div className="flex flex-wrap gap-2">
-                    {c.attachments.map((a) => (
-                      <span key={a.name} className="inline-flex items-center gap-2 text-[0.75rem] font-medium text-slate-600 bg-slate-50 border border-slate-100 rounded-lg px-2.5 py-1.5">
+                    {c.attachments.map((a, i) => (
+                      <a
+                        key={a.name || i}
+                        href={a.url || '#'}
+                        target={a.url ? "_blank" : undefined}
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-2 text-[0.75rem] font-medium text-slate-600 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg px-2.5 py-1.5 transition"
+                      >
                         <Paperclip size={12} className="text-slate-400" />{a.name}
-                        <span className="text-slate-300">{a.size}</span>
-                      </span>
+                        <span className="text-slate-400 font-mono text-[0.68rem]">{a.size}</span>
+                      </a>
                     ))}
                   </div>
                 </div>

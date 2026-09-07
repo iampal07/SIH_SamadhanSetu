@@ -1,17 +1,39 @@
 import { supabase, isSupabaseConfigured } from './supabase';
 
+function fileToBase64(file) {
+  return new Promise((resolve) => {
+    if (!file) return resolve('');
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result || '');
+    reader.onerror = () => resolve('');
+    reader.readAsDataURL(file);
+  });
+}
+
 /**
  * Uploads a file (image, pdf, document) to Supabase Storage bucket
- * Returns { name, url, size, type } or falls back cleanly
+ * Returns { name, url, size, type } with durable base64 fallback
  */
 export async function uploadFileToSupabase(file, bucket = 'attachments', userId = 'anon') {
-  if (!isSupabaseConfigured || !file) {
-    // Return a mock object if Supabase is not configured
+  if (!file) {
     return {
-      name: file?.name || 'attachment.jpg',
-      url: file ? URL.createObjectURL(file) : '',
-      size: `${((file?.size || 1024000) / (1024 * 1024)).toFixed(1)} MB`,
-      type: file?.type?.startsWith('image/') ? 'image' : 'doc',
+      name: 'attachment.jpg',
+      url: '',
+      size: '1.0 MB',
+      type: 'image',
+    };
+  }
+
+  const isImage = file.type?.startsWith('image/') || file.name?.match(/\.(jpg|jpeg|png|webp|gif)$/i);
+  const fileSizeMb = `${(file.size / (1024 * 1024)).toFixed(2)} MB`;
+
+  if (!isSupabaseConfigured) {
+    const base64 = await fileToBase64(file);
+    return {
+      name: file.name,
+      url: base64 || URL.createObjectURL(file),
+      size: fileSizeMb,
+      type: isImage ? 'image' : 'doc',
     };
   }
 
@@ -27,13 +49,13 @@ export async function uploadFileToSupabase(file, bucket = 'attachments', userId 
       });
 
     if (uploadError) {
-      console.warn('Supabase storage upload notice:', uploadError.message);
-      // If bucket doesn't exist yet, fallback to object URL so user flow doesn't block
+      console.warn('Supabase storage bucket notice (' + bucket + '):', uploadError.message, '- persisting as durable base64 data');
+      const base64 = await fileToBase64(file);
       return {
         name: file.name,
-        url: URL.createObjectURL(file),
-        size: `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
-        type: file.type.startsWith('image/') ? 'image' : 'doc',
+        url: base64 || URL.createObjectURL(file),
+        size: fileSizeMb,
+        type: isImage ? 'image' : 'doc',
       };
     }
 
@@ -44,16 +66,17 @@ export async function uploadFileToSupabase(file, bucket = 'attachments', userId 
     return {
       name: file.name,
       url: publicUrl,
-      size: `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
-      type: file.type.startsWith('image/') ? 'image' : 'doc',
+      size: fileSizeMb,
+      type: isImage ? 'image' : 'doc',
     };
   } catch (err) {
-    console.error('File upload error:', err);
+    console.error('File upload fallback:', err);
+    const base64 = await fileToBase64(file);
     return {
       name: file.name,
-      url: URL.createObjectURL(file),
-      size: `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
-      type: file.type.startsWith('image/') ? 'image' : 'doc',
+      url: base64 || URL.createObjectURL(file),
+      size: fileSizeMb,
+      type: isImage ? 'image' : 'doc',
     };
   }
 }
@@ -105,7 +128,7 @@ export async function insertChallengeInDb(challenge) {
  * Updates a challenge in Supabase (e.g. government validation or stage change)
  */
 export async function updateChallengeInDb(codeOrId, patch) {
-  if (!isSupabaseConfigured) return;
+  if (!isSupabaseConfigured || !codeOrId) return;
 
   try {
     const dbPatch = {};
@@ -120,10 +143,14 @@ export async function updateChallengeInDb(codeOrId, patch) {
       dbPatch.priority_level = patch.priority.level;
     }
 
-    await supabase
-      .from('challenges')
-      .update(dbPatch)
-      .or(`code.eq.${codeOrId},id.eq.${codeOrId}`);
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(codeOrId);
+    const query = supabase.from('challenges').update(dbPatch);
+
+    if (isUuid) {
+      await query.eq('id', codeOrId);
+    } else {
+      await query.eq('code', codeOrId);
+    }
   } catch (err) {
     console.error('Error updating challenge in Supabase:', err);
   }

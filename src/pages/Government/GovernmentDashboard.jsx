@@ -13,6 +13,7 @@ import { TrendArea, CategoryDonut, HBar, VBar } from '../../components/charts/Ch
 import JharkhandMap, { DistrictList } from '../../components/charts/JharkhandMap';
 import { usePlatform, useAnalytics } from '../../context/PlatformContext';
 import { useShell } from '../../context/AppShellContext';
+import { useAuth } from '../../context/AuthContext';
 import { UNIVERSITIES } from '../../data/universities';
 import { INDUSTRIES } from '../../data/industries';
 import { TREND_DATA } from '../../data/seedChallenges';
@@ -25,6 +26,10 @@ const R = ROLES.govt;
 export default function GovernmentDashboard() {
   const a = useAnalytics();
   const { t } = useShell();
+  const { user, profile } = useAuth();
+
+  const displayName = profile?.full_name || user?.user_metadata?.full_name || 'Nodal Officer';
+  const displayOrg = profile?.organization_name || 'District Innovation Cell';
 
   const nav = [
     { to: '/government', key: 'common.overview', label: 'Overview', icon: 'LayoutDashboard', end: true },
@@ -38,7 +43,7 @@ export default function GovernmentDashboard() {
   return (
     <DashboardLayout role="govt" nav={nav}
       title={t('govt.title')} subtitle={t('govt.sub')}
-      user={{ name: 'Nodal Officer', meta: 'State Innovation Mission' }}>
+      user={{ name: displayName, meta: displayOrg }}>
       <Routes>
         <Route index element={<Overview analytics={a} />} />
         <Route path="challenges" element={<Queue />} />
@@ -214,9 +219,9 @@ function ValidateModal({ challenge, onClose }) {
   const open = !!challenge;
 
   const submit = () => {
-    updateChallengeInDb(challenge.id, {
+    updateChallengeInDb(challenge.code || challenge.id, {
       status: 'validated',
-      validation: { status: 'validated', by: 'District Innovation Cell', note },
+      validation: { status: 'validated', by: displayName || 'District Innovation Cell', note },
     }).catch((err) => console.warn('Supabase DB validation note:', err));
 
     dispatch({ type: 'VALIDATE', id: challenge.id, note });

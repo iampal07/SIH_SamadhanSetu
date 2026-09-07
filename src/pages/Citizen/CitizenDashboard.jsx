@@ -31,16 +31,23 @@ const NAV = [
 
 export default function CitizenDashboard() {
   const { challenges } = usePlatform();
+  const { user, profile } = useAuth();
   const { t } = useShell();
-  const mine = useMemo(() => challenges.filter((c) => c.isMine || c.citizen.id === 'cit-me'), [challenges]);
+  const mine = useMemo(
+    () => challenges.filter((c) => c.isMine || c.citizen?.id === 'cit-me' || (user?.id && c.citizen?.id === user.id)),
+    [challenges, user]
+  );
 
   const nav = NAV.map((n) => (n.to === '/citizen/challenges' ? { ...n, badge: mine.length } : n));
+
+  const displayName = profile?.full_name || user?.user_metadata?.full_name || 'Citizen';
+  const displayDistrict = profile?.district || 'Ranchi';
 
   return (
     <DashboardLayout role="citizen" nav={nav}
       title={t('citizen.workspace')}
       subtitle={t('citizen.workspace.sub')}
-      user={{ name: 'Pooja Kachhap', meta: 'Kanke, Ranchi' }}>
+      user={{ name: displayName, meta: `${displayDistrict}, Jharkhand` }}>
       <Routes>
         <Route index element={<Overview mine={mine} />} />
         <Route path="submit" element={<Submit />} />
@@ -178,7 +185,7 @@ function Submit() {
     setUploading(true);
     const id = `CH-${1200 + challenges.filter((c) => !c.seeded).length + 1}`;
 
-    // Upload files to Supabase Storage (attachments bucket)
+    // Upload files to Supabase Storage (with durable base64 fallback)
     const uploadedAttachments = await Promise.all(
       fileObjects.map((f) => uploadFileToSupabase(f, 'attachments', user?.id))
     );
@@ -186,15 +193,23 @@ function Submit() {
     const challengePayload = {
       ...form,
       id,
+      code: id,
       attachments: uploadedAttachments,
       citizen: {
         id: user?.id || 'cit-me',
-        name: profile?.full_name || 'Citizen',
+        name: profile?.full_name || user?.user_metadata?.full_name || 'Citizen',
       },
     };
 
     // Save to Supabase Database
-    insertChallengeInDb(challengePayload).catch((err) => console.warn('Supabase DB save note:', err));
+    try {
+      const dbRes = await insertChallengeInDb(challengePayload);
+      if (dbRes?.dbId) {
+        challengePayload.dbId = dbRes.dbId;
+      }
+    } catch (dbErr) {
+      console.warn('Supabase DB save warning:', dbErr);
+    }
 
     dispatch({
       type: 'SUBMIT_CHALLENGE',

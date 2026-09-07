@@ -55,6 +55,12 @@ export default function ChallengeCard({ challenge: c, onOpen, actions, accent = 
         <span className="inline-flex items-center gap-1"><MapPin size={12} />{c.village}, {c.district}</span>
         {c.affected > 0 && <span className="inline-flex items-center gap-1"><Users size={12} />{fmtFull(c.affected)} {t('common.affected')}</span>}
         <span className="inline-flex items-center gap-1"><Icons.Clock size={12} />{timeAgo(c.createdAt)}</span>
+        {c.attachments?.length > 0 && (
+          <span className="inline-flex items-center gap-1 text-indigo-600 font-semibold">
+            <Icons.Paperclip size={12} />
+            {c.attachments.length} {c.attachments.length === 1 ? 'attachment' : 'attachments'}
+          </span>
+        )}
       </div>
 
       <div className="flex items-center gap-2 flex-wrap">
