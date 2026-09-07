@@ -180,7 +180,7 @@ h1, h2, h3, h4, .font-display { font-family: var(--font-display); letter-spacing
   .btn-primary:hover:not(:disabled) { box-shadow: 0 14px 30px -10px rgba(79,70,229,.9); filter: brightness(1.06); transform: translateY(-1px); }
   .btn-ghost { background: var(--surface); border-color: var(--border-strong); color: var(--ink); }
   .btn-ghost:hover:not(:disabled) { background: var(--surface-2); border-color: var(--muted); transform: translateY(-1px); }
-  .btn-sm { padding: .4rem .75rem; font-size: .8rem; border-radius: .65rem; }
+  .btn-sm { height: 2.25rem; padding: .4rem .75rem; font-size: .8rem; border-radius: .65rem; }
 
   /* Chips ------------------------------------------------------------ */
   .chip {

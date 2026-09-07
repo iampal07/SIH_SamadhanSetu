@@ -72,7 +72,7 @@ export default function PublicNav() {
 
   return (
     <header className={cx('fixed top-0 inset-x-0 z-50 transition-all duration-300', scrolled ? 'py-2' : 'py-4')}>
-      <div className="mx-auto max-w-6xl px-4 sm:px-6">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <div className={cx('flex items-center justify-between gap-3 rounded-2xl transition-all duration-300',
           scrolled ? 'glass shadow-lg px-4 py-2.5' : 'px-1 py-1')}>
           <Logo />
@@ -95,7 +95,7 @@ export default function PublicNav() {
             ))}
           </nav>
 
-          <div className="hidden lg:flex items-center gap-2 relative">
+          <div className="hidden lg:flex items-center gap-2 relative shrink-0">
             <ShellControls compact />
             <Link to="/citizen/submit" className="btn btn-ghost btn-sm">{t('nav.submitChallenge')}</Link>
 

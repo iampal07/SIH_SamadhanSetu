@@ -81,7 +81,7 @@ export function AIClassification({ ai }) {
       <Header icon={Sparkles} title={t('ai.classification')} tag={t('ai.model')} />
       <div className="flex items-center gap-4 mt-3">
         <ScoreRing value={ai.classification.confidence} color={cat.hex} size={68} sub={t('ai.confidence')} />
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <div className="font-display text-lg font-extrabold" style={{ color: cat.hex }}>{t(`cat.${ai.category}`, ai.category)}</div>
           <p className="text-[0.72rem] text-slate-500 mt-0.5">{t('ai.autoDomain')}</p>
           {ai.classification.keywords?.length > 0 && (
@@ -251,7 +251,7 @@ export function DisciplineWeb({ disciplines = [], category }) {
 
 function Header({ icon: Icon, title, tag }) {
   return (
-    <div className="flex items-start gap-2.5">
+    <div className="flex items-center gap-2.5">
       <div className="w-8 h-8 rounded-lg grid place-items-center shrink-0"
         style={{ background: 'var(--tint-ai)', color: 'var(--on-ai)' }}>
         <Icon size={16} strokeWidth={2.3} />

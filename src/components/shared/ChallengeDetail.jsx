@@ -86,10 +86,15 @@ export default function ChallengeDetail({ challenge, open, onClose, role = 'citi
                   <p className="text-[0.72rem] font-bold uppercase tracking-wide text-slate-400 mb-1.5">{t('common.attachments')}</p>
                   <div className="flex flex-wrap gap-2">
                     {c.attachments.map((a) => (
-                      <span key={a.name} className="inline-flex items-center gap-2 text-[0.75rem] font-medium text-slate-600 bg-slate-50 border border-slate-100 rounded-lg px-2.5 py-1.5">
-                        <Paperclip size={12} className="text-slate-400" />{a.name}
-                        <span className="text-slate-300">{a.size}</span>
-                      </span>
+                      a.url
+                        ? <a key={a.name} href={a.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-[0.75rem] font-medium text-slate-600 bg-slate-50 border border-slate-100 rounded-lg px-2.5 py-1.5 hover:border-slate-300 transition">
+                            <Paperclip size={12} className="text-slate-400" />{a.name}
+                            <span className="text-slate-300">{a.size}</span>
+                          </a>
+                        : <span key={a.name} className="inline-flex items-center gap-2 text-[0.75rem] font-medium text-slate-600 bg-slate-50 border border-slate-100 rounded-lg px-2.5 py-1.5">
+                            <Paperclip size={12} className="text-slate-400" />{a.name}
+                            <span className="text-slate-300">{a.size}</span>
+                          </span>
                     ))}
                   </div>
                 </div>
