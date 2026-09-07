@@ -8,7 +8,6 @@ import ChallengeCard from '../../components/cards/ChallengeCard';
 import ChallengeDetail, { MilestoneList } from '../../components/shared/ChallengeDetail';
 import { MatchList, DisciplineWeb } from '../../components/shared/AIPanel';
 import { LifecycleTrack, StageBadge } from '../../components/workflow/Lifecycle';
-import { ProjectProgressCard, ActivityFeed, EvidenceGallery, projectStats } from '../../components/workflow/ProjectProgress';
 import { Stat, Chip, Modal, SearchInput, Select, Empty, Avatar, Counter, Bar, ScoreRing, Reveal, Tabs } from '../../components/shared/ui';
 import { VBar, FitRadar, CategoryDonut } from '../../components/charts/Charts';
 import { usePlatform } from '../../context/PlatformContext';
@@ -30,14 +29,13 @@ export default function UniversityDashboard() {
 
   const mine = useMemo(() => challenges.filter((c) => c.university?.id === uni.id), [challenges, uni.id]);
   const prototypes = useMemo(() => mine.filter((c) => c.prototypeData || STAGE_INDEX[c.status] >= STAGE_INDEX.prototype), [mine]);
-  const needsTeam = useMemo(() => mine.filter((c) => !c.team), [mine]);
 
   const nav = [
     { to: '/university', key: 'common.overview', label: 'Overview', icon: 'LayoutDashboard', end: true },
     { to: '/university/challenges', key: 'varsity.nav.recommended', label: 'Recommended', icon: 'Inbox', badge: incoming.length },
     { to: '/university/projects', key: 'varsity.nav.projects', label: 'My Projects', icon: 'FolderKanban', badge: mine.length },
     { to: '/university/showcase', key: 'varsity.nav.showcase', label: 'Prototype Showcase', icon: 'Rocket', badge: prototypes.length },
-    { to: '/university/teams', key: 'varsity.nav.teams', label: 'Teams & Talent', icon: 'Users', badge: needsTeam.length },
+    { to: '/university/teams', key: 'varsity.nav.teams', label: 'Teams & Talent', icon: 'Users' },
     { to: '/university/industry', key: 'varsity.nav.industry', label: 'Industry Support', icon: 'Handshake' },
     { to: '/university/analytics', key: 'common.analytics', label: 'Analytics', icon: 'BarChart3' },
   ];
@@ -48,14 +46,14 @@ export default function UniversityDashboard() {
       user={{ name: uni.short, meta: 'Innovation Cell' }}
       headerRight={<UniSwitcher />}>
       <Routes>
-        <Route index element={<Overview uni={uni} incoming={incoming} mine={mine} needsTeam={needsTeam} />} />
+        <Route index element={<Overview uni={uni} incoming={incoming} mine={mine} />} />
         <Route path="challenges" element={<Incoming uni={uni} incoming={incoming} />} />
         <Route path="projects" element={<Projects uni={uni} mine={mine} />} />
         <Route path="showcase" element={<PrototypeShowcase uni={uni} mine={mine} prototypes={prototypes} />} />
         <Route path="teams" element={<Teams uni={uni} mine={mine} />} />
         <Route path="industry" element={<IndustrySupport mine={mine} />} />
         <Route path="analytics" element={<Analytics uni={uni} mine={mine} />} />
-        <Route path="*" element={<Overview uni={uni} incoming={incoming} mine={mine} needsTeam={needsTeam} />} />
+        <Route path="*" element={<Overview uni={uni} incoming={incoming} mine={mine} />} />
       </Routes>
     </DashboardLayout>
   );
@@ -72,48 +70,23 @@ function UniSwitcher() {
 }
 
 /* ── Overview ───────────────────────────────────────────────────────── */
-function Overview({ uni, incoming, mine, needsTeam = [] }) {
+function Overview({ uni, incoming, mine }) {
   const nav = useNavigate();
   const { t } = useShell();
   const [open, setOpen] = useState(null);
-  const [teamFor, setTeamFor] = useState(null);
   const active = mine.filter((c) => STAGE_INDEX[c.status] < STAGE_INDEX.deployment);
   const students = mine.reduce((s, c) => s + (c.team?.members.filter((m) => m.role === 'Student').length ?? 0), 0);
 
   return (
     <div className="space-y-5">
-      {needsTeam.length > 0 && (
-        <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
-          className="rounded-2xl border-2 border-dashed p-4 sm:p-5"
-          style={{ borderColor: R.hex, background: R.soft }}>
-          <div className="flex flex-wrap items-center gap-3 justify-between">
-            <div className="flex items-start gap-3 min-w-0">
-              <span className="w-10 h-10 rounded-xl grid place-items-center text-white shrink-0" style={{ background: R.hex }}>
-                <Users size={19} />
-              </span>
-              <div className="min-w-0">
-                <p className="font-display font-bold text-slate-900">
-                  Build your team — {needsTeam.length} accepted challenge{needsTeam.length > 1 ? 's' : ''} waiting
-                </p>
-                <p className="text-[0.78rem] text-slate-600 mt-0.5 truncate">
-                  {needsTeam.map((c) => `${c.code} · ${c.title}`).join('   |   ')}
-                </p>
-              </div>
-            </div>
-            <button className="btn text-white shrink-0" style={{ background: R.hex }} onClick={() => setTeamFor(needsTeam[0])}>
-              <Users size={15} />Build team for {needsTeam[0].code}
-            </button>
-          </div>
-        </motion.div>
-      )}
       <div className="rounded-2xl p-5 sm:p-6 text-white relative overflow-hidden" style={{ background: `linear-gradient(120deg,${R.hex},${R.deep})` }}>
         <motion.div className="absolute -right-10 -top-16 w-56 h-56 rounded-full bg-white/10 anim-float" />
         <div className="relative flex flex-col sm:flex-row gap-4 sm:items-center justify-between">
           <div>
             <p className="text-[0.72rem] font-bold uppercase tracking-widest opacity-80">{t('varsity.hero.eyebrow')}</p>
-            <h2 className="font-display text-2xl sm:text-3xl font-extrabold mt-1">{incoming.length} new challenges match your expertise</h2>
+            <h2 className="font-display text-2xl sm:text-3xl font-extrabold mt-1">{t('varsity.newMatch', '', { n: incoming.length })}</h2>
             <div className="flex flex-wrap gap-1.5 mt-3">
-              {uni.domains.map((d) => <span key={d} className="chip bg-white/15 text-white">{d}</span>)}
+              {uni.domains.map((d) => <span key={d} className="chip bg-white/15 text-white">{t(`cat.${d}`, d)}</span>)}
             </div>
           </div>
           <button className="btn bg-white text-indigo-700 hover:bg-white/90 px-5 py-3 shrink-0" onClick={() => nav('/university/challenges')}>
@@ -123,19 +96,19 @@ function Overview({ uni, incoming, mine, needsTeam = [] }) {
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Stat icon={Icons.Inbox} label="AI recommendations" value={incoming.length} color={R.hex} />
-        <Stat icon={Icons.FolderKanban} label="Active projects" value={active.length} color="#0891b2" delay={0.08} />
-        <Stat icon={Icons.Users} label="Students engaged" value={students} color="#f59e0b" delay={0.16} />
-        <Stat icon={Icons.Factory} label="Industry partnerships" value={mine.reduce((s, c) => s + c.partners.length, 0)} color="#059669" delay={0.24} />
+        <Stat icon={Icons.Inbox} label={t('AI recommendations')} value={incoming.length} color={R.hex} />
+        <Stat icon={Icons.FolderKanban} label={t('Active projects')} value={active.length} color="#0891b2" delay={0.08} />
+        <Stat icon={Icons.Users} label={t('Students engaged')} value={students} color="#f59e0b" delay={0.16} />
+        <Stat icon={Icons.Factory} label={t('Industry partnerships')} value={mine.reduce((s, c) => s + c.partners.length, 0)} color="#059669" delay={0.24} />
       </div>
 
       <div className="grid lg:grid-cols-2 gap-4">
         <div className="card p-5">
           <div className="flex items-center justify-between mb-3">
-            <p className="font-display font-bold text-slate-900">Incoming recommended challenges</p>
-            <button className="btn btn-ghost btn-sm" onClick={() => nav('/university/challenges')}>View all</button>
+            <p className="font-display font-bold text-slate-900">{t('Incoming recommended challenges')}</p>
+            <button className="btn btn-ghost btn-sm" onClick={() => nav('/university/challenges')}>{t('common.viewAll')}</button>
           </div>
-          {incoming.length === 0 ? <Empty icon={Icons.InboxIcon ?? Icons.Inbox} title="Queue is clear" sub="Newly validated challenges matching your domains appear here." />
+          {incoming.length === 0 ? <Empty icon={Icons.InboxIcon ?? Icons.Inbox} title={t('Queue is clear')} sub={t('Newly validated challenges matching your domains appear here.')} />
             : (
               <div className="space-y-3">
                 {incoming.slice(0, 3).map((c) => (
@@ -156,36 +129,27 @@ function Overview({ uni, incoming, mine, needsTeam = [] }) {
         </div>
 
         <div className="card p-5">
-          <div className="flex items-center justify-between mb-1">
-            <p className="font-display font-bold text-slate-900">Project portfolio</p>
-            <button className="btn btn-ghost btn-sm" onClick={() => nav('/university/projects')}>All projects</button>
-          </div>
-          <p className="text-[0.76rem] text-slate-400 mb-3">Live lifecycle status of everything you have accepted</p>
-          {mine.length === 0 ? <Empty icon={Icons.FolderOpen} title="No projects yet" sub="Accept a recommended challenge to start a project." />
+          <p className="font-display font-bold text-slate-900 mb-1">{t('Project portfolio')}</p>
+          <p className="text-[0.76rem] text-slate-400 mb-3">{t('Live lifecycle status of everything you have accepted')}</p>
+          {mine.length === 0 ? <Empty icon={Icons.FolderOpen} title={t('No projects yet')} sub={t('Accept a recommended challenge to start a project.')} />
             : (
               <div className="space-y-3.5">
-                {mine.slice(0, 4).map((c) => {
-                  const s = projectStats(c);
-                  return (
-                    <div key={c.id} className="cursor-pointer" onClick={() => setOpen(c)}>
-                      <div className="flex items-center justify-between gap-2 mb-1.5">
-                        <p className="text-[0.84rem] font-semibold text-slate-800 truncate">{c.title}</p>
-                        <StageBadge status={c.status} size="sm" />
-                      </div>
-                      <Bar value={s.stagePct} color={R.hex} height={6} />
-                      <p className="text-[0.68rem] text-slate-400 mt-1">
-                        {s.completion}% complete · {s.activeMilestone ? `working on: ${s.activeMilestone.title}` : s.next ? `next: ${s.next.label}` : 'lifecycle complete'}
-                      </p>
+                {mine.slice(0, 4).map((c) => (
+                  <div key={c.id} className="cursor-pointer" onClick={() => setOpen(c)}>
+                    <div className="flex items-center justify-between gap-2 mb-1.5">
+                      <p className="text-[0.84rem] font-semibold text-slate-800 truncate">{c.title}</p>
+                      <StageBadge status={c.status} size="sm" />
                     </div>
-                  );
-                })}
+                    <Bar value={((STAGE_INDEX[c.status] + 1) / STAGES.length) * 100} color={R.hex} height={6} />
+                  </div>
+                ))}
               </div>
             )}
         </div>
       </div>
 
       <div className="card p-5">
-        <p className="font-display font-bold text-slate-900 mb-3">Research strengths mapped to societal domains</p>
+        <p className="font-display font-bold text-slate-900 mb-3">{t('Research strengths mapped to societal domains')}</p>
         <div className="grid sm:grid-cols-2 gap-4">
           <FitRadar data={uni.domains.map((d, i) => ({ axis: d.split(' ')[0], value: 92 - i * 9 }))} color={R.hex} />
           <div className="space-y-2 self-center">
@@ -202,43 +166,36 @@ function Overview({ uni, incoming, mine, needsTeam = [] }) {
       </div>
 
       <ChallengeDetail challenge={open} open={!!open} onClose={() => setOpen(null)} role="varsity" />
-      <TeamModal challenge={teamFor} uni={uni} onClose={() => setTeamFor(null)} />
     </div>
   );
 }
 
 /* ── Incoming recommendations ───────────────────────────────────────── */
 function Incoming({ uni, incoming }) {
-  const { challenges, dispatch, toast } = usePlatform();
+  const { dispatch, toast } = usePlatform();
   const { t } = useShell();
-  const nav = useNavigate();
   const [open, setOpen] = useState(null);
-  const [teamFor, setTeamFor] = useState(null);
   const [q, setQ] = useState('');
   const [cat, setCat] = useState('All');
   const list = incoming.filter((c) => (cat === 'All' || c.category === cat) && c.title.toLowerCase().includes(q.toLowerCase()));
 
-  // Accept → status becomes Accepted → immediately prompt the university to build a team.
   const accept = (c) => {
     dispatch({ type: 'UNIVERSITY_ACCEPT', id: c.id, universityId: uni.id });
-    toast(`${c.code} accepted — build your team to start the project`, 'success');
+    toast(`${c.code} accepted — form your team next`, 'success');
     setOpen(null);
-    setTeamFor(c);
   };
-
-  // Keep the modal bound to the live (post-accept) challenge record.
-  const liveTeamFor = teamFor ? challenges.find((x) => x.id === teamFor.id) ?? teamFor : null;
 
   return (
     <div className="space-y-4">
       <div className="card p-4 flex flex-wrap gap-3 items-center">
-        <SearchInput value={q} onChange={setQ} placeholder="Search recommended challenges…" className="flex-1 min-w-[220px]" />
-        <Select value={cat} onChange={setCat} options={['All', ...CATEGORY_KEYS]} className="w-auto" />
-        <Chip color={R.hex} bg={R.soft}>{list.length} recommended by AI</Chip>
+        <SearchInput value={q} onChange={setQ} placeholder={t('Search recommended challenges…')} className="flex-1 min-w-[220px]" />
+        <Select value={cat} onChange={setCat} className="w-auto"
+          options={[{ value: 'All', label: t('common.all') }, ...CATEGORY_KEYS.map((c) => ({ value: c, label: t(`cat.${c}`, c) }))]} />
+        <Chip color={R.hex} bg={R.soft}>{t('common.recommendedByAi', '', { n: list.length })}</Chip>
       </div>
 
       {list.length === 0 ? (
-        <Empty icon={Icons.Inbox} title="No pending recommendations"
+        <Empty icon={Icons.Inbox} title={t('No pending recommendations')}
           sub="When the government validates a challenge in your research domains, the AI routes it here automatically." />
       ) : (
         <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -248,7 +205,7 @@ function Incoming({ uni, incoming }) {
                 actions={(
                   <>
                     <button className="btn btn-sm text-white" style={{ background: R.hex }} onClick={() => accept(c)}><Check size={13} />{t('common.accept')}</button>
-                    <button className="btn btn-ghost btn-sm" onClick={() => dispatch({ type: 'UNIVERSITY_DECLINE', id: c.id, universityId: uni.id, universityName: uni.name })}><X size={13} />{t('common.decline')}</button>
+                    <button className="btn btn-ghost btn-sm" onClick={() => dispatch({ type: 'UNIVERSITY_DECLINE', id: c.id, universityId: uni.id })}><X size={13} />{t('common.decline')}</button>
                   </>
                 )} />
             ))}
@@ -260,84 +217,48 @@ function Incoming({ uni, incoming }) {
         actions={open && (
           <>
             <button className="btn btn-primary" onClick={() => accept(open)}><Check size={15} />Accept this challenge</button>
-            <button className="btn btn-ghost" onClick={() => { dispatch({ type: 'UNIVERSITY_DECLINE', id: open.id, universityId: uni.id, universityName: uni.name }); setOpen(null); }}>Decline</button>
+            <button className="btn btn-ghost" onClick={() => { dispatch({ type: 'UNIVERSITY_DECLINE', id: open.id, universityId: uni.id }); setOpen(null); }}>Decline</button>
           </>
         )} />
-
-      <TeamModal challenge={liveTeamFor} uni={uni} onClose={() => setTeamFor(null)}
-        onDone={() => nav('/university/projects')} />
     </div>
   );
 }
 
-/* ── Projects — the live team + project progress board ──────────────── */
+/* ── Projects ───────────────────────────────────────────────────────── */
 function Projects({ uni, mine }) {
-  const { challenges, dispatch, toast } = usePlatform();
+  const { t } = useShell();
+  const { dispatch, toast } = usePlatform();
   const [open, setOpen] = useState(null);
   const [teamFor, setTeamFor] = useState(null);
   const [propFor, setPropFor] = useState(null);
-  const [protoFor, setProtoFor] = useState(null);
-  const [tab, setTab] = useState('active');
 
-  const live = (c) => challenges.find((x) => x.id === c.id) ?? c;
-  const active = mine.filter((c) => STAGE_INDEX[c.status] < STAGE_INDEX.deployment);
-  const delivered = mine.filter((c) => STAGE_INDEX[c.status] >= STAGE_INDEX.deployment);
-  const list = tab === 'active' ? active : tab === 'delivered' ? delivered : mine;
-
-  const advance = (c, stage) => {
-    dispatch({ type: 'ADVANCE', id: c.id, stage, by: uni.name });
-    toast(`${c.code} advanced to ${STAGES[STAGE_INDEX[stage]].label}`, 'success');
-  };
-
-  /* Which single next action does this project need from the university? */
-  const nextAction = (c) => {
-    if (!c.team) return { key: 'team', label: 'Build your team', Icon: Users, run: () => setTeamFor(c) };
-    if (!c.proposal) return { key: 'plan', label: 'Start solution development', Icon: FileText, run: () => setPropFor(c) };
-    if (STAGE_INDEX[c.status] < STAGE_INDEX.prototype) {
-      return { key: 'proto', label: 'Publish prototype', Icon: Rocket, run: () => setProtoFor(c) };
-    }
-    if (c.status === 'prototype') return { key: 'test', label: 'Start field testing', Icon: ArrowRight, run: () => advance(c, 'testing') };
-    if (c.status === 'testing') return { key: 'pilot', label: 'Start pilot deployment', Icon: ArrowRight, run: () => advance(c, 'pilot') };
-    return null;
+  const nextStage = (c) => {
+    const order = ['prototype', 'testing', 'pilot', 'deployment', 'impact_measured'];
+    const cur = STAGE_INDEX[c.status];
+    const next = order.find((s) => STAGE_INDEX[s] > cur);
+    return next;
   };
 
   return (
     <div className="space-y-4">
-      <Tabs accent={R.hex} active={tab} onChange={setTab} tabs={[
-        { key: 'active', label: `Active projects (${active.length})` },
-        { key: 'delivered', label: `Delivered (${delivered.length})` },
-        { key: 'all', label: `All (${mine.length})` },
-      ]} />
-
-      {list.length === 0 ? (
-        <Empty icon={Icons.FolderOpen} title="No projects in this view"
-          sub="Accept a recommended challenge to create your first project — accepted challenges always stay visible here." />
+      {mine.length === 0 ? (
+        <Empty icon={Icons.FolderOpen} title={t('No projects yet')} sub={t('Accept a recommended challenge to create your first project.')} />
       ) : (
-        <div className="grid xl:grid-cols-2 gap-4">
-          {list.map((c) => {
-            const na = nextAction(c);
-            const awaitingReview = STAGE_INDEX[c.status] >= STAGE_INDEX.pilot && STAGE_INDEX[c.status] < STAGE_INDEX.deployment;
+        <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {mine.map((c, i) => {
+            const ns = nextStage(c);
             return (
-              <ProjectProgressCard key={c.id} challenge={c} accent={R.hex} onOpen={setOpen}
+              <ChallengeCard key={c.id} challenge={c} index={i} onOpen={setOpen} accent={R.hex}
                 actions={(
                   <>
-                    {na && (
-                      <button className="btn btn-sm text-white" style={{ background: R.hex }} onClick={na.run}>
-                        <na.Icon size={13} />{na.label}
-                      </button>
-                    )}
+                    {!c.team && <button className="btn btn-sm text-white" style={{ background: R.hex }} onClick={() => setTeamFor(c)}><Users size={13} />Form team</button>}
+                    {c.team && !c.proposal && <button className="btn btn-sm text-white" style={{ background: R.hex }} onClick={() => setPropFor(c)}><FileText size={13} />Create proposal</button>}
                     {c.proposal && c.partners.length === 0 && <Chip color="#b45309" bg="#fff7ed">Awaiting industry partner</Chip>}
-                    {c.partners.length > 0 && (
-                      <Chip color={ROLES.industry.deep} bg={ROLES.industry.soft}>
-                        <Factory size={11} />{c.partners.map((p) => p.short).join(', ')}
-                      </Chip>
-                    )}
-                    {awaitingReview && !c.reviews?.length && <Chip color={ROLES.govt.deep} bg={ROLES.govt.soft}>Awaiting government review</Chip>}
-                    {c.reviews?.[0]?.decision === 'changes_requested' && (
-                      <Chip color="#dc2626" bg="#fef2f2"><AlertCircle size={11} />Changes requested</Chip>
-                    )}
-                    {STAGE_INDEX[c.status] >= STAGE_INDEX.deployment && (
-                      <Chip color="#059669" bg="#ecfdf5"><CheckCircle2 size={11} />Deployed</Chip>
+                    {c.proposal && c.partners.length > 0 && ns && (
+                      <button className="btn btn-sm text-white" style={{ background: R.hex }}
+                        onClick={() => { dispatch({ type: 'ADVANCE', id: c.id, stage: ns }); toast(`${c.code} advanced to ${ns.replace('_', ' ')}`, 'success'); }}>
+                        <ArrowRight size={13} />Move to {STAGES[STAGE_INDEX[ns]].short}
+                      </button>
                     )}
                   </>
                 )} />
@@ -346,33 +267,30 @@ function Projects({ uni, mine }) {
         </div>
       )}
 
-      <ChallengeDetail challenge={open ? live(open) : null} open={!!open} onClose={() => setOpen(null)} role="varsity"
-        actions={open && (() => {
-          const c = live(open);
-          const na = nextAction(c);
-          return na ? (
-            <button className="btn btn-primary" onClick={() => { na.run(); setOpen(null); }}>
-              <na.Icon size={15} />{na.label}
-            </button>
-          ) : null;
-        })()} />
+      <ChallengeDetail challenge={open} open={!!open} onClose={() => setOpen(null)} role="varsity"
+        actions={open && (
+          <>
+            {!open.team && <button className="btn btn-primary" onClick={() => { setTeamFor(open); setOpen(null); }}><Users size={15} />Form multidisciplinary team</button>}
+            {open.team && !open.proposal && <button className="btn btn-primary" onClick={() => { setPropFor(open); setOpen(null); }}><FileText size={15} />Create proposal</button>}
+          </>
+        )} />
 
-      <TeamModal challenge={teamFor ? live(teamFor) : null} uni={uni} onClose={() => setTeamFor(null)} />
-      <ProposalModal challenge={propFor ? live(propFor) : null} onClose={() => setPropFor(null)} />
-      <PrototypeModal challenge={protoFor ? live(protoFor) : null} uni={uni} onClose={() => setProtoFor(null)} />
+      <TeamModal challenge={teamFor} uni={uni} onClose={() => setTeamFor(null)} />
+      <ProposalModal challenge={propFor} onClose={() => setPropFor(null)} />
     </div>
   );
 }
 
 /* ── Team formation modal ───────────────────────────────────────────── */
-function TeamModal({ challenge, uni, onClose, onDone }) {
+function TeamModal({ challenge, uni, onClose }) {
+  const { t } = useShell();
   const { dispatch, toast } = usePlatform();
   const pool = TALENT_POOL[uni.id] ?? [];
   const [picked, setPicked] = useState([]);
   const [name, setName] = useState('');
 
   const disciplines = challenge ? suggestDisciplines(challenge.category) : [];
-  const open = !!challenge && !challenge.team;
+  const open = !!challenge;
 
   const toggle = (m) => setPicked((p) => (p.some((x) => x.id === m.id) ? p.filter((x) => x.id !== m.id) : [...p, m]));
 
@@ -391,31 +309,20 @@ function TeamModal({ challenge, uni, onClose, onDone }) {
       type: 'FORM_TEAM', id: challenge.id,
       team: { name: name.trim() || `${challenge.category.split(' ')[0]} Innovation Cell`, members: picked, disciplines },
     });
-    toast(`Team of ${picked.length} formed for ${challenge.code} — the project is now in Team Formation`, 'success');
+    toast(`Team of ${picked.length} formed for ${challenge.code}`, 'success');
     setPicked([]); setName('');
     onClose();
-    onDone?.();
   };
 
   return (
     <Modal open={open} onClose={onClose} accent={R.hex} width="max-w-3xl"
-      title="Build your project team" subtitle={challenge ? `${challenge.code} · ${challenge.title}` : ''}>
+      title={t('Form a multidisciplinary team')} subtitle={challenge ? `${challenge.code} · ${challenge.title}` : ''}>
       {challenge && (
         <div className="space-y-4">
-          <div className="rounded-xl p-3.5 flex items-start gap-3" style={{ background: R.soft }}>
-            <CheckCircle2 size={18} style={{ color: R.hex }} className="mt-0.5 shrink-0" />
-            <div>
-              <p className="text-[0.82rem] font-bold" style={{ color: R.deep }}>Challenge accepted by {uni.short}</p>
-              <p className="text-[0.78rem] text-slate-600 mt-0.5">
-                Select faculty, researchers and students below. As soon as the team is created the project moves to
-                <b> Team Formation</b> and everyone — citizen, government and industry — sees the new status.
-              </p>
-            </div>
-          </div>
           <DisciplineWeb disciplines={disciplines} category={challenge.category} />
           <div className="flex flex-wrap gap-3 items-end">
             <div className="flex-1 min-w-[220px]">
-              <label className="label">Team name</label>
+              <label className="label">{t('Team name')}</label>
               <input className="field" value={name} onChange={(e) => setName(e.target.value)}
                 placeholder={`${challenge.category.split(' ')[0]} Innovation Cell`} />
             </div>
@@ -455,6 +362,7 @@ function TeamModal({ challenge, uni, onClose, onDone }) {
 
 /* ── Proposal modal ─────────────────────────────────────────────────── */
 function ProposalModal({ challenge, onClose }) {
+  const { t } = useShell();
   const { dispatch, toast } = usePlatform();
   const [f, setF] = useState({ title: '', objective: '', approach: '', budget: '₹28,50,000', duration: '9 months' });
   const [needs, setNeeds] = useState(['Funding', 'Technology']);
@@ -487,18 +395,18 @@ function ProposalModal({ challenge, onClose }) {
 
   return (
     <Modal open={open} onClose={onClose} accent={R.hex} width="max-w-2xl"
-      title="Create project proposal" subtitle={challenge ? `${challenge.code} · ${challenge.title}` : ''}>
+      title={t('Create project proposal')} subtitle={challenge ? `${challenge.code} · ${challenge.title}` : ''}>
       {challenge && (
         <div className="space-y-4">
           <div>
-            <label className="label">Proposal title</label>
+            <label className="label">{t('Proposal title')}</label>
             <input className="field" value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })}
               placeholder={`${challenge.category} solution for ${challenge.village}`} />
           </div>
           <div>
-            <label className="label">Objective</label>
+            <label className="label">{t('Objective')}</label>
             <textarea rows={3} className="field resize-none" value={f.objective} onChange={(e) => setF({ ...f, objective: e.target.value })}
-              placeholder="What will this project deliver and for whom?" />
+              placeholder={t('What will this project deliver and for whom?')} />
           </div>
           <div>
             <label className="label">Approach</label>
@@ -506,11 +414,11 @@ function ProposalModal({ challenge, onClose }) {
               placeholder="Survey → co-design → prototype → pilot → handover" />
           </div>
           <div className="grid sm:grid-cols-2 gap-4">
-            <div><label className="label">Estimated budget</label><input className="field" value={f.budget} onChange={(e) => setF({ ...f, budget: e.target.value })} /></div>
+            <div><label className="label">{t('Estimated budget')}</label><input className="field" value={f.budget} onChange={(e) => setF({ ...f, budget: e.target.value })} /></div>
             <div><label className="label">Duration</label><input className="field" value={f.duration} onChange={(e) => setF({ ...f, duration: e.target.value })} /></div>
           </div>
           <div>
-            <label className="label">Industry support required</label>
+            <label className="label">{t('Industry support required')}</label>
             <div className="flex flex-wrap gap-1.5">
               {SUPPORT_TYPES.map((s) => {
                 const on = needs.includes(s);
@@ -529,7 +437,7 @@ function ProposalModal({ challenge, onClose }) {
           </p>
           <div className="flex justify-end gap-2">
             <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
-            <button className="btn btn-primary" onClick={submit}><FileText size={15} />Publish proposal</button>
+            <button className="btn btn-primary" onClick={submit}><FileText size={15} />{t('Publish proposal')}</button>
           </div>
         </div>
       )}
@@ -539,17 +447,18 @@ function ProposalModal({ challenge, onClose }) {
 
 /* ── Teams ──────────────────────────────────────────────────────────── */
 function Teams({ uni, mine }) {
+  const { t } = useShell();
   const pool = TALENT_POOL[uni.id] ?? [];
   const teams = mine.filter((c) => c.team);
   const [tab, setTab] = useState('teams');
 
   return (
     <div className="space-y-4">
-      <Tabs tabs={[{ key: 'teams', label: `Active teams (${teams.length})` }, { key: 'pool', label: `Talent pool (${pool.length})` }]}
+      <Tabs tabs={[{ key: 'teams', label: t('tab.teams', '', { n: teams.length }) }, { key: 'pool', label: t('tab.pool', '', { n: pool.length }) }]}
         active={tab} onChange={setTab} accent={R.hex} />
 
       {tab === 'teams' && (teams.length === 0
-        ? <Empty icon={Icons.Users} title="No teams formed yet" sub="Accept a challenge and compose a multidisciplinary team." />
+        ? <Empty icon={Icons.Users} title={t('No teams formed yet')} sub={t('Accept a challenge and compose a multidisciplinary team.')} />
         : (
           <div className="grid md:grid-cols-2 gap-4">
             {teams.map((c, i) => (
@@ -607,13 +516,15 @@ function Teams({ uni, mine }) {
 
 /* ── Industry support ───────────────────────────────────────────────── */
 function IndustrySupport({ mine }) {
+  const { t } = useShell();
+  const { dispatch, toast } = usePlatform();
   const [open, setOpen] = useState(null);
   const withProposal = mine.filter((c) => c.proposal);
 
   return (
     <div className="space-y-4">
       {withProposal.length === 0 ? (
-        <Empty icon={Icons.Handshake} title="No proposals published yet" sub="Publish a proposal to request industry mentorship, funding or technology." />
+        <Empty icon={Icons.Handshake} title={t('No proposals published yet')} sub={t('Publish a proposal to request industry mentorship, funding or technology.')} />
       ) : withProposal.map((c, i) => (
         <Reveal key={c.id} delay={i * 0.06}>
           <div className="card p-5">
@@ -628,7 +539,7 @@ function IndustrySupport({ mine }) {
               <div className="flex items-center gap-2">
                 {c.partners.length > 0
                   ? <Chip color="#059669" bg="#ecfdf5"><Check size={11} />{c.partners.length} partner{c.partners.length > 1 ? 's' : ''} joined</Chip>
-                  : <Chip color="#b45309" bg="#fff7ed">Open request</Chip>}
+                  : <Chip color="#b45309" bg="#fff7ed">{t('Open request')}</Chip>}
                 <button className="btn btn-ghost btn-sm" onClick={() => setOpen(c)}>Details</button>
               </div>
             </div>
@@ -640,8 +551,7 @@ function IndustrySupport({ mine }) {
                       style={{ background: `linear-gradient(135deg,${ROLES.industry.hex},#fb923c)` }}>{p.short[0]}</div>
                     <div className="min-w-0">
                       <p className="text-[0.82rem] font-bold text-slate-800 truncate">{p.name}</p>
-                      <p className="text-[0.68rem] text-slate-400 truncate">{(p.supports ?? []).join(' · ')} · {p.amount}</p>
-                      {p.note && <p className="text-[0.68rem] text-slate-500 mt-1 line-clamp-2">“{p.note}”</p>}
+                      <p className="text-[0.68rem] text-slate-400 truncate">{p.supports.join(' · ')} · {p.amount}</p>
                     </div>
                   </div>
                 ))}
@@ -658,6 +568,7 @@ function IndustrySupport({ mine }) {
 
 /* ── Analytics ──────────────────────────────────────────────────────── */
 function Analytics({ uni, mine }) {
+  const { t } = useShell();
   const byCat = useMemo(() => {
     const m = {};
     mine.forEach((c) => { m[c.category] = (m[c.category] ?? 0) + 1; });
@@ -670,23 +581,23 @@ function Analytics({ uni, mine }) {
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Stat icon={Icons.FolderKanban} label="Total projects" value={mine.length} color={R.hex} />
-        <Stat icon={Icons.CheckCircle2} label="Completed" value={completed} color="#059669" delay={0.08} />
-        <Stat icon={Icons.Users} label="Team members deployed" value={mine.reduce((s, c) => s + (c.team?.members.length ?? 0), 0)} color="#f59e0b" delay={0.16} />
-        <Stat icon={Icons.HeartHandshake} label="Citizens impacted" value={mine.reduce((s, c) => s + (c.impact?.beneficiaries ?? 0), 0)} color="#0891b2" delay={0.24} />
+        <Stat icon={Icons.FolderKanban} label={t('Total projects')} value={mine.length} color={R.hex} />
+        <Stat icon={Icons.CheckCircle2} label={t('Completed')} value={completed} color="#059669" delay={0.08} />
+        <Stat icon={Icons.Users} label={t('Team members deployed')} value={mine.reduce((s, c) => s + (c.team?.members.length ?? 0), 0)} color="#f59e0b" delay={0.16} />
+        <Stat icon={Icons.HeartHandshake} label={t('Citizens impacted')} value={mine.reduce((s, c) => s + (c.impact?.beneficiaries ?? 0), 0)} color="#0891b2" delay={0.24} />
       </div>
       <div className="grid lg:grid-cols-2 gap-4">
         <div className="card p-5">
-          <p className="font-display font-bold text-slate-900 mb-2">Projects by lifecycle stage</p>
+          <p className="font-display font-bold text-slate-900 mb-2">{t('Projects by lifecycle stage')}</p>
           <VBar data={byStage} color={R.hex} />
         </div>
         <div className="card p-5">
-          <p className="font-display font-bold text-slate-900 mb-2">Projects by domain</p>
-          {byCat.length ? <CategoryDonut data={byCat} /> : <Empty icon={Icons.PieChart} title="No project data yet" />}
+          <p className="font-display font-bold text-slate-900 mb-2">{t('Projects by domain')}</p>
+          {byCat.length ? <CategoryDonut data={byCat} /> : <Empty icon={Icons.PieChart} title={t('No project data yet')} />}
         </div>
       </div>
       <div className="card p-5">
-        <p className="font-display font-bold text-slate-900 mb-3">Institutional capability profile</p>
+        <p className="font-display font-bold text-slate-900 mb-3">{t('Institutional capability profile')}</p>
         <div className="grid sm:grid-cols-3 gap-4">
           <div className="text-center">
             <ScoreRing value={Math.round(uni.rating * 20)} color={R.hex} size={92} label={uni.rating.toFixed(1)} sub="rating" />
@@ -708,18 +619,62 @@ function Analytics({ uni, mine }) {
 
 /* ── Prototype Showcase & Scaling Pipeline ───────────────────────────── */
 function PrototypeShowcase({ uni, mine, prototypes }) {
-  const { toast } = usePlatform();
-  const availableChallenges = mine.filter((c) => STAGE_INDEX[c.status] >= STAGE_INDEX.team_formed);
-  const [protoFor, setProtoFor] = useState(null);
+  const { dispatch, toast } = usePlatform();
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedChallengeId, setSelectedChallengeId] = useState(mine[0]?.id || '');
+  const [form, setForm] = useState({
+    title: '',
+    abstract: '',
+    trl: 6,
+    demoUrl: '',
+    videoDemoUrl: '',
+    estimatedFunding: '1500000',
+    integrationReqs: '3-Phase 415V power or 3kW solar hybrid microgrid\nGSM / 4G cellular IoT telemetry for cloud reporting\nGram Panchayat land access & site NOC\n3-day technician maintenance training workshop',
+    facultyLead: `Prof. Innovation Lead (${uni.short})`,
+    studentContributors: 'Aditya Kumar (B.Tech), Neha Tirkey (M.Tech)',
+  });
 
-  const openPicker = () => {
-    if (!availableChallenges.length) {
-      toast('Accept a challenge and form a team before publishing a prototype', 'warn');
+  const availableChallenges = mine.filter((c) => STAGE_INDEX[c.status] >= STAGE_INDEX.team_formed);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!selectedChallengeId) {
+      toast('Please select an active project to attach this prototype to', 'warn');
       return;
     }
-    setProtoFor(availableChallenges[0]);
+
+    const reqsList = form.integrationReqs
+      .split('\n')
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    const prototypePayload = {
+      title: form.title || `${uni.short} Working Prototype Demo`,
+      abstract: form.abstract || 'Lab-tested working prototype addressing community problem.',
+      trl: Number(form.trl),
+      estimatedFunding: Number(form.estimatedFunding) || 1200000,
+      fundingRaised: 0,
+      demoUrl: form.demoUrl || 'https://demo.samadhansetu.gov.in',
+      videoDemoUrl: form.videoDemoUrl || 'https://youtube.com',
+      integrationRequirements: reqsList,
+      facultyLead: form.facultyLead,
+      studentContributors: form.studentContributors.split(',').map((s) => s.trim()),
+      isIndustryReady: true,
+    };
+
+    const targetChallenge = mine.find((c) => c.id === selectedChallengeId);
+
+    // Save to Supabase Database
+
+    dispatch({
+      type: 'PUBLISH_PROTOTYPE',
+      id: selectedChallengeId,
+      prototype: prototypePayload,
+    });
+
+    toast('Working prototype published and stored in Supabase database!', 'success');
+    setModalOpen(false);
   };
-  const setModalOpen = (v) => (v ? openPicker() : setProtoFor(null));
 
   return (
     <div className="space-y-5">
@@ -879,121 +834,150 @@ function PrototypeShowcase({ uni, mine, prototypes }) {
       )}
 
       {/* Upload Prototype Modal */}
-      <PrototypeModal challenge={protoFor} uni={uni} onClose={() => setProtoFor(null)}
-        pickList={availableChallenges} onPick={setProtoFor} />
+      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title="Upload Working Prototype & Request Industry Scaling">
+        <form onSubmit={handleSubmit} className="space-y-4 max-h-[75vh] overflow-y-auto pr-1">
+          <div>
+            <label className="label">Associated Community Project *</label>
+            <select
+              value={selectedChallengeId}
+              onChange={(e) => setSelectedChallengeId(e.target.value)}
+              className="field"
+              required
+            >
+              {availableChallenges.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.code} — {c.title} ({c.category})
+                </option>
+              ))}
+            </select>
+            {availableChallenges.length === 0 && (
+              <p className="text-[0.7rem] text-amber-600 mt-1">
+                You need at least one accepted project with a formed team to attach a prototype.
+              </p>
+            )}
+          </div>
+
+          <div>
+            <label className="label">Prototype Title *</label>
+            <input
+              type="text"
+              required
+              value={form.title}
+              onChange={(e) => setForm({ ...form, title: e.target.value })}
+              placeholder="e.g. Low-Cost Hybrid Solar Reverse-Osmosis Filtration Rig"
+              className="field"
+            />
+          </div>
+
+          <div>
+            <label className="label">Technical Abstract & Working Principle *</label>
+            <textarea
+              rows={3}
+              required
+              value={form.abstract}
+              onChange={(e) => setForm({ ...form, abstract: e.target.value })}
+              placeholder="Explain how the prototype operates, bill-of-materials highlights, and results from initial bench tests..."
+              className="field resize-none"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="label">Technology Readiness Level (TRL)</label>
+              <select
+                value={form.trl}
+                onChange={(e) => setForm({ ...form, trl: Number(e.target.value) })}
+                className="field"
+              >
+                <option value={4}>TRL 4 - Component Validated in Lab</option>
+                <option value={5}>TRL 5 - Component Validated in Field</option>
+                <option value={6}>TRL 6 - Prototype Demonstrated in Field</option>
+                <option value={7}>TRL 7 - System Prototype Demo in Real Environment</option>
+                <option value={8}>TRL 8 - Actual System Completed and Qualified</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="label">Estimated Funding Required (₹) *</label>
+              <input
+                type="number"
+                required
+                value={form.estimatedFunding}
+                onChange={(e) => setForm({ ...form, estimatedFunding: e.target.value })}
+                placeholder="e.g. 1500000"
+                className="field"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="label">Full-Scale Integration Requirements (1 per line) *</label>
+            <textarea
+              rows={3}
+              required
+              value={form.integrationReqs}
+              onChange={(e) => setForm({ ...form, integrationReqs: e.target.value })}
+              placeholder="List infrastructure, grid power, cellular connectivity, or municipal permissions required for full-scale installation..."
+              className="field resize-none text-xs"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="label">Demo URL / GitHub</label>
+              <input
+                type="url"
+                value={form.demoUrl}
+                onChange={(e) => setForm({ ...form, demoUrl: e.target.value })}
+                placeholder="https://github.com/..."
+                className="field text-xs"
+              />
+            </div>
+            <div>
+              <label className="label">Demo Video Link (YouTube / Drive)</label>
+              <input
+                type="url"
+                value={form.videoDemoUrl}
+                onChange={(e) => setForm({ ...form, videoDemoUrl: e.target.value })}
+                placeholder="https://youtube.com/watch?v=..."
+                className="field text-xs"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="label">Faculty Principal Investigator</label>
+              <input
+                type="text"
+                value={form.facultyLead}
+                onChange={(e) => setForm({ ...form, facultyLead: e.target.value })}
+                className="field text-xs"
+              />
+            </div>
+            <div>
+              <label className="label">Key Student Contributors</label>
+              <input
+                type="text"
+                value={form.studentContributors}
+                onChange={(e) => setForm({ ...form, studentContributors: e.target.value })}
+                placeholder="Names separated by comma"
+                className="field text-xs"
+              />
+            </div>
+          </div>
+
+          <div className="pt-3 border-t border-slate-100 flex justify-end gap-2">
+            <button type="button" onClick={() => setModalOpen(false)} className="btn btn-ghost">
+              Cancel
+            </button>
+            <button type="submit" className="btn btn-primary">
+              <Rocket size={15} /> Publish for Industry Scaling
+            </button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }
 
-/* ── Prototype publishing modal (shared by Projects + Showcase) ──────── */
-function PrototypeModal({ challenge, uni, onClose, pickList = [], onPick }) {
-  const { dispatch, toast } = usePlatform();
-  const [form, setForm] = useState(null);
-
-  const open = !!challenge;
-  const defaults = useMemo(() => (challenge ? {
-    title: challenge.prototypeData?.title || `${challenge.category} working prototype for ${challenge.village}`,
-    abstract: challenge.prototypeData?.abstract || challenge.proposal?.objective || '',
-    trl: challenge.prototypeData?.trl || 6,
-    demoUrl: challenge.prototypeData?.demoUrl || '',
-    videoDemoUrl: challenge.prototypeData?.videoDemoUrl || '',
-    estimatedFunding: String(challenge.prototypeData?.estimatedFunding || 1500000),
-    integrationReqs: (challenge.prototypeData?.integrationRequirements || [
-      '3-Phase 415V power or 3kW solar hybrid microgrid',
-      'GSM / 4G cellular IoT telemetry for cloud reporting',
-      'Gram Panchayat land access & site NOC',
-      '3-day technician maintenance training workshop',
-    ]).join('\n'),
-    facultyLead: challenge.prototypeData?.facultyLead
-      || challenge.team?.members?.find((m) => m.role === 'Faculty')?.name
-      || `Prof. Innovation Lead (${uni.short})`,
-    studentContributors: (challenge.prototypeData?.studentContributors
-      || challenge.team?.members?.filter((m) => m.role === 'Student').map((m) => m.name)
-      || ['Innovation Cell Scholars']).join(', '),
-  } : null), [challenge, uni.short]);
-
-  const f = form ?? defaults;
-  const set = (k) => (e) => setForm({ ...(form ?? defaults), [k]: e.target.value });
-
-  const submit = (e) => {
-    e.preventDefault();
-    if (!challenge) return;
-    const payload = {
-      title: f.title.trim() || `${uni.short} working prototype`,
-      abstract: f.abstract.trim() || 'Lab-tested working prototype addressing the reported community problem.',
-      trl: Number(f.trl),
-      estimatedFunding: Number(f.estimatedFunding) || 1200000,
-      fundingRaised: challenge.prototypeData?.fundingRaised
-        || challenge.partners.reduce((s, p) => s + (p.amountValue || 0), 0),
-      demoUrl: f.demoUrl.trim(),
-      videoDemoUrl: f.videoDemoUrl.trim(),
-      integrationRequirements: f.integrationReqs.split('\n').map((s) => s.trim()).filter(Boolean),
-      facultyLead: f.facultyLead,
-      studentContributors: f.studentContributors.split(',').map((s) => s.trim()).filter(Boolean),
-      isIndustryReady: true,
-    };
-    dispatch({ type: 'PUBLISH_PROTOTYPE', id: challenge.id, prototype: payload });
-    toast(`Prototype Ready — ${challenge.code} is now visible to industry partners`, 'success');
-    setForm(null);
-    onClose();
-  };
-
-  return (
-    <Modal open={open} onClose={() => { setForm(null); onClose(); }} accent={R.hex} width="max-w-2xl"
-      title="Publish working prototype" subtitle={challenge ? `${challenge.code} · ${challenge.title}` : ''}>
-      {challenge && f && (
-        <form onSubmit={submit} className="space-y-4">
-          {pickList.length > 1 && onPick && (
-            <div>
-              <label className="label">Associated project</label>
-              <select className="field" value={challenge.id}
-                onChange={(e) => { setForm(null); onPick(pickList.find((c) => c.id === e.target.value)); }}>
-                {pickList.map((c) => <option key={c.id} value={c.id}>{c.code} — {c.title}</option>)}
-              </select>
-            </div>
-          )}
-          <div>
-            <label className="label">Prototype title *</label>
-            <input required className="field" value={f.title} onChange={set('title')} />
-          </div>
-          <div>
-            <label className="label">Technical abstract & working principle *</label>
-            <textarea required rows={3} className="field resize-none" value={f.abstract} onChange={set('abstract')}
-              placeholder="How the prototype works, key components, and bench-test results…" />
-          </div>
-          <div className="grid sm:grid-cols-2 gap-3">
-            <div>
-              <label className="label">Technology Readiness Level</label>
-              <select className="field" value={f.trl} onChange={set('trl')}>
-                {[4, 5, 6, 7, 8].map((n) => <option key={n} value={n}>TRL {n}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="label">Scaling funding required (₹) *</label>
-              <input required type="number" min="0" className="field" value={f.estimatedFunding} onChange={set('estimatedFunding')} />
-            </div>
-          </div>
-          <div>
-            <label className="label">Full-scale integration requirements (one per line) *</label>
-            <textarea required rows={4} className="field resize-none text-xs" value={f.integrationReqs} onChange={set('integrationReqs')} />
-          </div>
-          <div className="grid sm:grid-cols-2 gap-3">
-            <div><label className="label">Demo / repository URL</label><input type="url" className="field text-xs" value={f.demoUrl} onChange={set('demoUrl')} placeholder="https://…" /></div>
-            <div><label className="label">Demo video URL</label><input type="url" className="field text-xs" value={f.videoDemoUrl} onChange={set('videoDemoUrl')} placeholder="https://…" /></div>
-          </div>
-          <div className="grid sm:grid-cols-2 gap-3">
-            <div><label className="label">Faculty principal investigator</label><input className="field text-xs" value={f.facultyLead} onChange={set('facultyLead')} /></div>
-            <div><label className="label">Student contributors</label><input className="field text-xs" value={f.studentContributors} onChange={set('studentContributors')} /></div>
-          </div>
-          <p className="text-[0.76rem] text-slate-400">
-            Publishing marks the project <b>Prototype Ready</b>, alerts matching industry partners and queues it for government review.
-          </p>
-          <div className="flex justify-end gap-2 pt-2 border-t" style={{ borderColor: 'var(--border)' }}>
-            <button type="button" className="btn btn-ghost" onClick={() => { setForm(null); onClose(); }}>Cancel</button>
-            <button type="submit" className="btn btn-primary"><Rocket size={15} />Publish prototype</button>
-          </div>
-        </form>
-      )}
-    </Modal>
-  );
-}

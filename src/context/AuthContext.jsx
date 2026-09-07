@@ -79,6 +79,15 @@ export function AuthProvider({ children }) {
           setUser(initialSession.user);
           const userProf = await fetchUserProfile(initialSession.user.id);
           setProfile(userProf);
+        } else if (mounted) {
+          // No Supabase session — restore a presentation demo identity if one
+          // was chosen, so a page reload does not drop the demo role.
+          const savedDemo = localStorage.getItem('samadhan_demo_user');
+          if (savedDemo && DEMO_USERS[savedDemo]) {
+            setUser({ id: DEMO_USERS[savedDemo].id, email: DEMO_USERS[savedDemo].email });
+            setProfile(DEMO_USERS[savedDemo]);
+            setIsDemoMode(true);
+          }
         }
       } catch (err) {
         console.error('Failed to get initial session:', err);
@@ -99,8 +108,15 @@ export function AuthProvider({ children }) {
       if (newSession?.user) {
         const userProf = await fetchUserProfile(newSession.user.id);
         if (mounted) setProfile(userProf);
-      } else {
-        if (mounted) setProfile(null);
+      } else if (mounted) {
+        const savedDemo = localStorage.getItem('samadhan_demo_user');
+        if (savedDemo && DEMO_USERS[savedDemo]) {
+          setUser({ id: DEMO_USERS[savedDemo].id, email: DEMO_USERS[savedDemo].email });
+          setProfile(DEMO_USERS[savedDemo]);
+          setIsDemoMode(true);
+        } else {
+          setProfile(null);
+        }
       }
       setLoading(false);
     });

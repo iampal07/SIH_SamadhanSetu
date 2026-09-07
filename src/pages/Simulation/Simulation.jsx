@@ -781,7 +781,7 @@ export default function Simulation() {
                   style={{ background: 'linear-gradient(120deg,#4f46e5,#06b6d4)', boxShadow: '0 22px 50px -18px #4f46e5' }}>
                   <Play size={20} />{t('sim.start')}
                 </motion.button>
-                <p className="text-[0.72rem] opacity-40">9 scenes · ~70 seconds · space / arrow keys work too</p>
+                <p className="text-[0.72rem] opacity-40">{t('sim.intro.hint', '9 scenes · ~70 seconds · space / arrow keys work too')}</p>
             </motion.div>
           ) : (
             <div key={scene.id} className="scene-enter rounded-3xl p-4 sm:p-6 relative overflow-hidden h-full flex flex-col"
@@ -797,9 +797,9 @@ export default function Simulation() {
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="chip" style={{ background: `${role.hex}30`, color: '#fff' }}>{t(`role.${scene.actor}`)}</span>
-                      <span className="text-[0.74rem] font-semibold opacity-60">{scene.who}</span>
+                      <span className="text-[0.74rem] font-semibold opacity-60">{t(`sim.${scene.id}.who`, scene.who)}</span>
                     </div>
-                    <h2 className="font-display text-lg sm:text-2xl font-extrabold mt-1 leading-tight">{scene.action}</h2>
+                    <h2 className="font-display text-lg sm:text-2xl font-extrabold mt-1 leading-tight">{t(`sim.${scene.id}.action`, scene.action)}</h2>
                   </div>
                 </div>
 
@@ -812,15 +812,15 @@ export default function Simulation() {
                 <div className="relative grid sm:grid-cols-[1.5fr_1fr] gap-2.5 mt-3">
                   <motion.div initial={{ y: 8 }} animate={{ y: 0 }} transition={{ delay: 0.5 }}
                     className="rounded-2xl px-4 py-2.5" style={{ background: `${role.hex}22`, border: `1px solid ${role.hex}55` }}>
-                    <p className="text-[0.62rem] font-bold uppercase tracking-widest opacity-60">Result</p>
-                    <p className="text-[0.88rem] font-bold">{scene.result}</p>
+                    <p className="text-[0.62rem] font-bold uppercase tracking-widest opacity-60">{t('sim.result', 'Result')}</p>
+                    <p className="text-[0.88rem] font-bold">{t(`sim.${scene.id}.result`, scene.result)}</p>
                   </motion.div>
                   <motion.div initial={{ y: 8 }} animate={{ y: 0 }} transition={{ delay: 0.65 }}
                     className="rounded-2xl px-4 py-2.5" style={{ background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.12)' }}>
                     <p className="text-[0.62rem] font-bold uppercase tracking-widest opacity-60 flex items-center gap-1">
-                      Next <ArrowRight size={10} />
+                      {t('sim.next', 'Next')} <ArrowRight size={10} />
                     </p>
-                    <p className="text-[0.8rem] opacity-85">{scene.next}</p>
+                    <p className="text-[0.8rem] opacity-85">{t(`sim.${scene.id}.next`, scene.next)}</p>
                   </motion.div>
                 </div>
             </div>

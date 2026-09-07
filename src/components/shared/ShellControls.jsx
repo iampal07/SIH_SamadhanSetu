@@ -63,7 +63,7 @@ export function LanguageSwitch({ compact = false, align = 'right' }) {
               exit={{ opacity: 0, y: 4, scale: 0.98 }}
               transition={{ duration: 0.16 }}
               className={cx('absolute top-11 w-44 rounded-2xl border p-1.5 z-50 shadow-xl', align === 'right' ? 'right-0' : 'left-0')}
-              style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}
+              style={{ background: 'var(--surface-raised)', borderColor: 'var(--border)' }}
             >
               <p className="px-2.5 py-1 text-[0.62rem] font-bold uppercase tracking-widest" style={{ color: 'var(--muted)' }}>
                 {t('nav.language')}

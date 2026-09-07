@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Users, GraduationCap, Factory, Landmark, Sparkles } from 'lucide-react';
 import { ROLES } from '../../data/constants';
+import { useShell } from '../../context/AppShellContext';
 
 const NODES = [
   { key: 'citizen', Icon: Users, x: 50, y: 8, label: 'Citizens', sub: 'Report real problems' },
@@ -15,11 +16,13 @@ const NODES = [
  * Pure SVG + Framer Motion — no 3D runtime needed, loads instantly on a projector.
  */
 export default function Ecosystem({ size = 420, active }) {
+  const { t } = useShell();
   const [hover, setHover] = useState(null);
   const cur = hover ?? active;
 
   return (
-    <div className="relative select-none mx-auto" style={{ width: size, height: size, maxWidth: '100%' }}>
+    <div className="relative select-none mx-auto w-full"
+      style={{ maxWidth: size, aspectRatio: '1 / 1', containerType: 'inline-size' }}>
       <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full overflow-visible">
         <defs>
           <radialGradient id="core-glow">
@@ -43,7 +46,7 @@ export default function Ecosystem({ size = 420, active }) {
           <g key={n.key}>
             <motion.line x1="50" y1="50" x2={n.x} y2={n.y}
               stroke={`url(#lg-${n.key})`} strokeWidth={cur === n.key ? 1.1 : 0.6} strokeLinecap="round"
-              initial={{ pathLength: 0, opacity: 0 }} animate={{ pathLength: 1, opacity: 1 }}
+              initial={{ pathLength: 0.001 }} animate={{ pathLength: 1 }}
               transition={{ duration: 1, delay: 0.4 + i * 0.15 }} />
             <motion.g
               animate={{ x: [0, n.x - 50, 0], y: [0, n.y - 50, 0], opacity: [0, 1, 0] }}
@@ -67,13 +70,14 @@ export default function Ecosystem({ size = 420, active }) {
       {/* AI core */}
       <motion.div
         className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-2xl grid place-items-center text-white shadow-2xl"
-        style={{ width: size * 0.2, height: size * 0.2, background: 'linear-gradient(135deg,#8b5cf6,#4f46e5)', boxShadow: '0 20px 50px -18px #6366f1' }}
-        initial={{ scale: 0, rotate: -30 }} animate={{ scale: 1, rotate: 0 }}
-        transition={{ type: 'spring', stiffness: 200, damping: 16, delay: 0.2 }}
+        style={{ width: '21cqw', height: '21cqw', background: 'linear-gradient(135deg,#8b5cf6,#4f46e5)', boxShadow: '0 20px 50px -18px #6366f1' }}
+        initial={false}
+        whileHover={{ scale: 1.05 }}
+        transition={{ type: 'spring', stiffness: 200, damping: 16 }}
       >
         <motion.div animate={{ scale: [1, 1.08, 1] }} transition={{ duration: 2.4, repeat: Infinity }} className="text-center">
-          <Sparkles size={size * 0.07} className="mx-auto" />
-          <div className="font-display font-extrabold mt-0.5" style={{ fontSize: size * 0.035 }}>AI CORE</div>
+          <span className="block mx-auto" style={{ width: '7cqw', height: '7cqw' }}><Sparkles className="w-full h-full" /></span>
+          <div className="font-display font-extrabold mt-0.5" style={{ fontSize: '3.5cqw' }}>AI CORE</div>
         </motion.div>
       </motion.div>
 
@@ -83,21 +87,21 @@ export default function Ecosystem({ size = 420, active }) {
         return (
           <motion.div key={n.key}
             className="absolute -translate-x-1/2 -translate-y-1/2 text-center"
-            style={{ left: `${n.x}%`, top: `${n.y}%`, width: size * 0.3 }}
-            initial={{ opacity: 0, scale: 0.6 }} animate={{ opacity: 1, scale: 1 }}
+            style={{ left: `${n.x}%`, top: `${n.y}%`, width: '31cqw' }}
+            initial={{ scale: 0.7 }} animate={{ scale: 1 }}
             transition={{ delay: 0.5 + i * 0.12, type: 'spring', stiffness: 240, damping: 18 }}
             onMouseEnter={() => setHover(n.key)} onMouseLeave={() => setHover(null)}
           >
             <motion.div
               className="mx-auto rounded-2xl grid place-items-center text-white shadow-lg cursor-pointer"
-              style={{ width: size * 0.135, height: size * 0.135, background: `linear-gradient(135deg,${r.hex},${r.deep})`, boxShadow: `0 14px 30px -12px ${r.hex}` }}
+              style={{ width: '14cqw', height: '14cqw', background: `linear-gradient(135deg,${r.hex},${r.deep})`, boxShadow: `0 14px 30px -12px ${r.hex}` }}
               animate={on ? { scale: 1.14, y: -3 } : { scale: 1, y: 0 }}
               transition={{ type: 'spring', stiffness: 320, damping: 20 }}
             >
-              <n.Icon size={size * 0.055} strokeWidth={2.2} />
+              <span className="block" style={{ width: '5.6cqw', height: '5.6cqw' }}><n.Icon className="w-full h-full" strokeWidth={2.2} /></span>
             </motion.div>
-            <div className="font-display font-bold mt-1.5 text-slate-800" style={{ fontSize: size * 0.036 }}>{n.label}</div>
-            <div className="text-slate-400 font-medium" style={{ fontSize: size * 0.028 }}>{n.sub}</div>
+            <div className="font-display font-bold mt-1.5 text-slate-800" style={{ fontSize: '3.7cqw' }}>{t(`role.${n.key}`, n.label)}</div>
+            <div className="text-slate-400 font-medium" style={{ fontSize: '2.9cqw' }}>{t(`role.${n.key}.desc`, n.sub)}</div>
           </motion.div>
         );
       })}

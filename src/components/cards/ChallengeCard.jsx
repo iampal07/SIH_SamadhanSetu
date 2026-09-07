@@ -34,11 +34,11 @@ export default function ChallengeCard({ challenge: c, onOpen, actions, accent = 
             {p && (
               <span className="chip" style={{ background: p.bg, color: p.fg }}>
                 <i className="w-1.5 h-1.5 rounded-full" style={{ background: p.dot }} />
-                {c.priority.level} · {c.priority.score}
+                {t(`priority.${c.priority.level}`, c.priority.level)} · {c.priority.score}
               </span>
             )}
             {c.validation?.status === 'pending' && (
-              <Chip color="#a16207" bg="#fefce8">Pending validation</Chip>
+              <Chip color="var(--on-medium)" bg="var(--tint-medium)">{t('common.pendingValidation')}</Chip>
             )}
           </div>
           <h3 className="font-display font-bold text-[0.95rem] leading-snug text-slate-900 mt-1 group-hover:text-indigo-600 transition line-clamp-2">

@@ -4,6 +4,7 @@ import { PlayCircle, ArrowRight } from 'lucide-react';
 import { Reveal, SectionHead, Chip } from '../../components/shared/ui';
 import { DisciplineWeb } from '../../components/shared/AIPanel';
 import { STAGES, ROLES } from '../../data/constants';
+import { useShell } from '../../context/AppShellContext';
 
 const DETAIL = {
   submitted: 'A citizen, community group or government office files the problem with a title, description, category, location and photographs. It takes under two minutes on a phone.',
@@ -21,10 +22,11 @@ const DETAIL = {
 };
 
 export default function HowItWorks() {
+  const { t } = useShell();
   return (
     <div className="pt-28 pb-20 mesh">
       <div className="max-w-5xl mx-auto px-5 sm:px-6">
-        <SectionHead eyebrow="How It Works" title="The complete twelve-stage lifecycle"
+        <SectionHead eyebrow="How It Works" title={t('The complete twelve-stage lifecycle')}
           sub="Every challenge on SamadhanSetu follows the same transparent path. Each stage names exactly who acts and what happens next." />
 
         <div className="mt-12 relative">
@@ -59,14 +61,14 @@ export default function HowItWorks() {
           <Reveal><DisciplineWeb disciplines={['Civil Engineering', 'Environmental Science', 'Computer Science', 'IoT / Electronics']} category="Water & Sanitation" /></Reveal>
           <Reveal delay={0.1}>
             <div className="card p-5 h-full flex flex-col justify-center">
-              <p className="font-display font-bold text-lg text-slate-900">Want to see it move?</p>
+              <p className="font-display font-bold text-lg text-slate-900">{t('Want to see it move?')}</p>
               <p className="text-[0.86rem] text-slate-500 mt-1.5">
                 The simulation page runs a real challenge through all twelve stages with play, pause and step controls —
                 and every step updates the four dashboards live.
               </p>
               <div className="flex flex-wrap gap-2 mt-4">
-                <Link to="/simulation" className="btn btn-primary"><PlayCircle size={15} />Run simulation</Link>
-                <Link to="/citizen/submit" className="btn btn-ghost">Submit your own <ArrowRight size={14} /></Link>
+                <Link to="/simulation" className="btn btn-primary"><PlayCircle size={15} />{t('Run simulation')}</Link>
+                <Link to="/citizen/submit" className="btn btn-ghost">{t('Submit your own')} <ArrowRight size={14} /></Link>
               </div>
             </div>
           </Reveal>

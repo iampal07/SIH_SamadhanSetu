@@ -24,11 +24,12 @@ export const fmtDate = (iso) => (iso
   ? new Date(iso).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
   : '—');
 
+/* Priority tones resolve through CSS variables so they work in both themes. */
 export const priorityTone = (level) => ({
-  CRITICAL: { bg: '#fef2f2', fg: '#b91c1c', dot: '#ef4444' },
-  HIGH: { bg: '#fff7ed', fg: '#c2410c', dot: '#f97316' },
-  MEDIUM: { bg: '#fefce8', fg: '#a16207', dot: '#eab308' },
-  LOW: { bg: '#f0fdf4', fg: '#15803d', dot: '#22c55e' },
-}[level] ?? { bg: '#f1f5f9', fg: '#475569', dot: '#94a3b8' });
+  CRITICAL: { bg: 'var(--tint-critical)', fg: 'var(--on-critical)', dot: '#ef4444' },
+  HIGH: { bg: 'var(--tint-high)', fg: 'var(--on-high)', dot: '#f97316' },
+  MEDIUM: { bg: 'var(--tint-medium)', fg: 'var(--on-medium)', dot: '#eab308' },
+  LOW: { bg: 'var(--tint-low)', fg: 'var(--on-low)', dot: '#22c55e' },
+}[level] ?? { bg: 'var(--surface-2)', fg: 'var(--muted)', dot: '#94a3b8' });
 
 export const cx = (...a) => a.filter(Boolean).join(' ');

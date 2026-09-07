@@ -2,40 +2,32 @@ import { useMemo, useState } from 'react';
 import { Routes, Route, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as Icons from 'lucide-react';
-import { ShieldCheck, X, Sparkles, ArrowRight, AlertTriangle, MapPinned, Gavel, CheckCircle2, RotateCcw, Rocket } from 'lucide-react';
+import { ShieldCheck, X, Sparkles, ArrowRight, AlertTriangle, MapPinned } from 'lucide-react';
 import DashboardLayout from '../../components/navigation/DashboardLayout';
 import ChallengeCard from '../../components/cards/ChallengeCard';
 import ChallengeDetail from '../../components/shared/ChallengeDetail';
 import { AIProcessing, MatchList } from '../../components/shared/AIPanel';
 import { StageBadge, LifecycleTrack } from '../../components/workflow/Lifecycle';
-import { ProjectProgressCard, EvidenceGallery, FeedbackList, projectStats } from '../../components/workflow/ProjectProgress';
 import { Stat, Chip, Modal, SearchInput, Select, Empty, Counter, Bar, ScoreRing, Reveal, Tabs } from '../../components/shared/ui';
 import { TrendArea, CategoryDonut, HBar, VBar } from '../../components/charts/Charts';
 import JharkhandMap, { DistrictList } from '../../components/charts/JharkhandMap';
 import { usePlatform, useAnalytics } from '../../context/PlatformContext';
 import { useShell } from '../../context/AppShellContext';
-import { useAuth } from '../../context/AuthContext';
 import { UNIVERSITIES } from '../../data/universities';
 import { INDUSTRIES } from '../../data/industries';
 import { TREND_DATA } from '../../data/seedChallenges';
 import { CATEGORY_KEYS, DISTRICT_NAMES, ROLES, STAGE_INDEX, STAGES, catMeta } from '../../data/constants';
 import { timeAgo, fmtFull, cx, priorityTone } from '../../utils/format';
-import { updateChallengeInDb } from '../../services/db';
 
 const R = ROLES.govt;
 
 export default function GovernmentDashboard() {
   const a = useAnalytics();
   const { t } = useShell();
-  const { user, profile } = useAuth();
-
-  const displayName = profile?.full_name || user?.user_metadata?.full_name || 'Nodal Officer';
-  const displayOrg = profile?.organization_name || 'District Innovation Cell';
 
   const nav = [
     { to: '/government', key: 'common.overview', label: 'Overview', icon: 'LayoutDashboard', end: true },
     { to: '/government/challenges', key: 'govt.nav.queue', label: 'Validation Queue', icon: 'ShieldCheck', badge: a.pending.length },
-    { to: '/government/review', label: 'Review & Deployment', icon: 'Gavel', badge: a.awaitingReview.length },
     { to: '/government/map', key: 'govt.nav.map', label: 'District Analytics', icon: 'Map' },
     { to: '/government/projects', key: 'govt.nav.projects', label: 'Project Monitoring', icon: 'Activity', badge: a.delayed.length },
     { to: '/government/ecosystem', key: 'govt.nav.ecosystem', label: 'Ecosystem', icon: 'Network' },
@@ -45,11 +37,10 @@ export default function GovernmentDashboard() {
   return (
     <DashboardLayout role="govt" nav={nav}
       title={t('govt.title')} subtitle={t('govt.sub')}
-      user={{ name: displayName, meta: displayOrg }}>
+      user={{ name: 'Nodal Officer', meta: 'State Innovation Mission' }}>
       <Routes>
         <Route index element={<Overview analytics={a} />} />
         <Route path="challenges" element={<Queue />} />
-        <Route path="review" element={<ReviewQueue analytics={a} />} />
         <Route path="map" element={<MapAnalytics analytics={a} />} />
         <Route path="projects" element={<Monitoring analytics={a} />} />
         <Route path="ecosystem" element={<EcosystemView />} />
@@ -75,9 +66,9 @@ function Overview({ analytics: a }) {
         <div className="relative flex flex-col sm:flex-row gap-4 sm:items-center justify-between">
           <div>
             <p className="text-[0.72rem] font-bold uppercase tracking-widest opacity-80">{t('govt.hero.eyebrow')}</p>
-            <h2 className="font-display text-2xl sm:text-3xl font-extrabold mt-1">{a.pending.length} challenges awaiting validation</h2>
+            <h2 className="font-display text-2xl sm:text-3xl font-extrabold mt-1">{t('govt.awaiting', '', { n: a.pending.length })}</h2>
             <p className="text-white/85 text-[0.9rem] mt-1.5 max-w-lg">
-              Validate a challenge and the AI immediately routes it to the best-matched universities in the state.
+              {t('govt.awaitingSub')}
             </p>
           </div>
           <button className="btn bg-white text-emerald-700 hover:bg-white/90 px-5 py-3 shrink-0" onClick={() => nav('/government/challenges')}>
@@ -87,30 +78,30 @@ function Overview({ analytics: a }) {
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Stat icon={Icons.Inbox} label="Total challenges" value={a.total} color={R.hex} />
-        <Stat icon={Icons.ShieldCheck} label="Validated" value={a.validated} color="#0891b2" delay={0.08} />
-        <Stat icon={Icons.Activity} label="Active projects" value={a.active} color="#6366f1" delay={0.16} />
-        <Stat icon={Icons.CheckCircle2} label="Deployed solutions" value={a.completed} color="#f59e0b" delay={0.24} />
+        <Stat icon={Icons.Inbox} label={t('Total challenges')} value={a.total} color={R.hex} />
+        <Stat icon={Icons.ShieldCheck} label={t('Validated')} value={a.validated} color="#0891b2" delay={0.08} />
+        <Stat icon={Icons.Activity} label={t('Active projects')} value={a.active} color="#6366f1" delay={0.16} />
+        <Stat icon={Icons.CheckCircle2} label={t('Deployed solutions')} value={a.completed} color="#f59e0b" delay={0.24} />
       </div>
 
       <div className="grid lg:grid-cols-[1.3fr_1fr] gap-4">
         <div className="card p-5">
-          <p className="font-display font-bold text-slate-900">Platform trend</p>
-          <p className="text-[0.76rem] text-slate-400 mb-2">Submissions, validations, active projects and completions</p>
+          <p className="font-display font-bold text-slate-900">{t('Platform trend')}</p>
+          <p className="text-[0.76rem] text-slate-400 mb-2">{t('Submissions, validations, active projects and completions')}</p>
           <TrendArea data={TREND_DATA} height={250} />
         </div>
         <div className="card p-5">
-          <p className="font-display font-bold text-slate-900">Challenges by domain</p>
-          <p className="text-[0.76rem] text-slate-400">Where problems are concentrated</p>
-          <CategoryDonut data={a.byCategory.slice(0, 7)} height={250} />
+          <p className="font-display font-bold text-slate-900">{t('Challenges by domain')}</p>
+          <p className="text-[0.76rem] text-slate-400">{t('Where problems are concentrated')}</p>
+          <CategoryDonut data={a.byCategory.slice(0, 7).map((d) => ({ ...d, name: t(`cat.${d.name}`, d.name), key: d.name }))} height={250} />
         </div>
       </div>
 
       <div className="grid lg:grid-cols-2 gap-4">
         <div className="card p-5">
           <div className="flex items-center justify-between mb-3">
-            <p className="font-display font-bold text-slate-900">High priority challenges</p>
-            <button className="btn btn-ghost btn-sm" onClick={() => nav('/government/challenges')}>Queue</button>
+            <p className="font-display font-bold text-slate-900">{t('High priority challenges')}</p>
+            <button className="btn btn-ghost btn-sm" onClick={() => nav('/government/challenges')}>{t('common.viewQueue')}</button>
           </div>
           <div className="space-y-2">
             {critical.map((c) => {
@@ -130,11 +121,11 @@ function Overview({ analytics: a }) {
           </div>
         </div>
         <div className="card p-5">
-          <p className="font-display font-bold text-slate-900 mb-1">District hotspots</p>
-          <p className="text-[0.76rem] text-slate-400 mb-2">Challenge density across Jharkhand</p>
+          <p className="font-display font-bold text-slate-900 mb-1">{t('District hotspots')}</p>
+          <p className="text-[0.76rem] text-slate-400 mb-2">{t('Challenge density across Jharkhand')}</p>
           <DistrictList data={a.byDistrict.slice(0, 8)} />
           <button className="btn btn-ghost btn-sm w-full mt-2" onClick={() => nav('/government/map')}>
-            <MapPinned size={13} />Open district analytics
+            <MapPinned size={13} />{t('Open district analytics')}
           </button>
         </div>
       </div>
@@ -146,7 +137,7 @@ function Overview({ analytics: a }) {
 
 /* ── Validation queue ───────────────────────────────────────────────── */
 function Queue() {
-  const { challenges, dispatch, toast } = usePlatform();
+  const { challenges, dispatch, toast, analyseChallenge, aiBusy } = usePlatform();
   const { t } = useShell();
   const [open, setOpen] = useState(null);
   const [validateFor, setValidateFor] = useState(null);
@@ -163,22 +154,28 @@ function Queue() {
     : tab === 'validated' ? filtered.filter((c) => c.validation.status === 'validated')
       : filtered;
 
-  const runAI = (c) => { dispatch({ type: 'RUN_AI', id: c.id }); toast(`AI analysis complete for ${c.code}`, 'success'); };
+  const runAI = async (c) => {
+    const res = await analyseChallenge(c.id);
+    if (res.ok) {
+      toast(`AI analysis complete for ${c.code} · ${res.analysis.category} · ${res.analysis.priority_level}`, 'success');
+    }
+  };
 
   return (
     <div className="space-y-4">
       <div className="card p-4 flex flex-wrap gap-3 items-center">
-        <SearchInput value={q} onChange={setQ} placeholder="Search all challenges…" className="flex-1 min-w-[200px]" />
-        <Select value={cat} onChange={setCat} options={['All', ...CATEGORY_KEYS]} className="w-auto" />
+        <SearchInput value={q} onChange={setQ} placeholder={t('Search all challenges…')} className="flex-1 min-w-[200px]" />
+        <Select value={cat} onChange={setCat} className="w-auto"
+          options={[{ value: 'All', label: t('common.all') }, ...CATEGORY_KEYS.map((c) => ({ value: c, label: t(`cat.${c}`, c) }))]} />
         <Select value={dist} onChange={setDist} options={['All', ...DISTRICT_NAMES]} className="w-auto" />
       </div>
       <Tabs accent={R.hex} active={tab} onChange={setTab} tabs={[
-        { key: 'pending', label: `Pending (${filtered.filter((c) => c.validation.status === 'pending').length})` },
-        { key: 'validated', label: `Validated (${filtered.filter((c) => c.validation.status === 'validated').length})` },
-        { key: 'all', label: `All (${filtered.length})` },
+        { key: 'pending', label: t('tab.pending', '', { n: filtered.filter((c) => c.validation.status === 'pending').length }) },
+        { key: 'validated', label: t('tab.validated', '', { n: filtered.filter((c) => c.validation.status === 'validated').length }) },
+        { key: 'all', label: t('tab.all', '', { n: filtered.length }) },
       ]} />
 
-      {list.length === 0 ? <Empty icon={Icons.ShieldCheck} title="Queue is clear" sub="No challenges match this filter." />
+      {list.length === 0 ? <Empty icon={Icons.ShieldCheck} title={t('Queue is clear')} sub={t('No challenges match this filter.')} />
         : (
           <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
             <AnimatePresence>
@@ -186,14 +183,19 @@ function Queue() {
                 <ChallengeCard key={c.id} challenge={c} index={i} onOpen={setOpen} accent={R.hex}
                   actions={(
                     <>
-                      {!c.ai && <button className="btn btn-sm text-white" style={{ background: '#8b5cf6' }} onClick={() => runAI(c)}><Sparkles size={13} />{t('govt.runAI')}</button>}
+                      {!c.ai && (
+                        <button className="btn btn-sm text-white" style={{ background: '#8b5cf6' }}
+                          disabled={!!aiBusy[c.id]} onClick={() => runAI(c)}>
+                          <Sparkles size={13} />{aiBusy[c.id] ? t('ai.running', 'Analysing…') : t('govt.runAI')}
+                        </button>
+                      )}
                       {c.ai && c.validation.status === 'pending' && (
                         <>
                           <button className="btn btn-sm text-white" style={{ background: R.hex }} onClick={() => setValidateFor(c)}><ShieldCheck size={13} />{t('common.validate')}</button>
                           <button className="btn btn-ghost btn-sm" onClick={() => { dispatch({ type: 'REJECT_CHALLENGE', id: c.id }); toast(`${c.code} marked as duplicate`, 'warn'); }}><X size={13} />{t('common.reject')}</button>
                         </>
                       )}
-                      {c.validation.status === 'validated' && <Chip color={R.deep} bg={R.soft}>Validated</Chip>}
+                      {c.validation.status === 'validated' && <Chip color={R.deep} bg={R.soft}>{t('Validated')}</Chip>}
                       {c.validation.status === 'rejected' && <Chip color="#b91c1c" bg="#fef2f2">Rejected</Chip>}
                     </>
                   )} />
@@ -205,7 +207,12 @@ function Queue() {
       <ChallengeDetail challenge={open} open={!!open} onClose={() => setOpen(null)} role="govt"
         actions={open && (
           <>
-            {!open.ai && <button className="btn btn-primary" onClick={() => { runAI(open); setOpen(null); }}><Sparkles size={15} />Run AI analysis</button>}
+            {!open.ai && (
+              <button className="btn btn-primary" disabled={!!aiBusy[open.id]}
+                onClick={() => { runAI(open); setOpen(null); }}>
+                <Sparkles size={15} />{t('ai.run', 'Run AI analysis')}
+              </button>
+            )}
             {open.ai && open.validation.status === 'pending' && (
               <button className="btn btn-primary" onClick={() => { setValidateFor(open); setOpen(null); }}><ShieldCheck size={15} />Validate & route</button>
             )}
@@ -217,213 +224,44 @@ function Queue() {
 }
 
 function ValidateModal({ challenge, onClose }) {
-  const { dispatch, toast } = usePlatform();
   const { t } = useShell();
-  const { user, profile } = useAuth();
+  const { dispatch, toast } = usePlatform();
   const [note, setNote] = useState('Field verified by block officer. Genuine and high impact.');
   const open = !!challenge;
 
-  const officerName = profile?.full_name || user?.user_metadata?.full_name || 'District Innovation Cell';
-
   const submit = () => {
-    if (!challenge) return;
-    updateChallengeInDb(challenge.code || challenge.id, {
-      status: 'validated',
-      validation: { status: 'validated', by: officerName, note },
-    }).catch((err) => console.warn('Supabase DB validation note:', err));
-
     dispatch({ type: 'VALIDATE', id: challenge.id, note });
-    const matchCount = challenge.ai?.universityMatches?.slice(0, 3)?.length ?? 3;
-    toast(`${challenge.code} validated — routed to ${matchCount} universities`, 'success');
+    toast(`${challenge.code} validated — routed to ${challenge.ai?.universityMatches.slice(0, 3).length ?? 3} universities`, 'success');
     onClose();
   };
 
   return (
     <Modal open={open} onClose={onClose} accent={R.hex} width="max-w-2xl"
-      title="Validate challenge" subtitle={challenge ? `${challenge.code} · ${challenge.title}` : ''}>
+      title={t('Validate challenge')} subtitle={challenge ? `${challenge.code} · ${challenge.title}` : ''}>
       {challenge && (
         <div className="space-y-4">
           <div className="grid sm:grid-cols-3 gap-3">
             <div className="rounded-xl bg-slate-50 p-3">
-              <p className="text-[0.66rem] font-bold uppercase text-slate-400">AI category</p>
+              <p className="text-[0.66rem] font-bold uppercase text-slate-400">{t('AI category')}</p>
               <p className="text-[0.86rem] font-bold" style={{ color: catMeta(challenge.category).hex }}>{challenge.category}</p>
             </div>
             <div className="rounded-xl bg-slate-50 p-3">
               <p className="text-[0.66rem] font-bold uppercase text-slate-400">Priority</p>
-              <p className="text-[0.86rem] font-bold text-slate-800">{challenge.priority?.score ?? 50}/100 · {challenge.priority?.level ?? 'MEDIUM'}</p>
+              <p className="text-[0.86rem] font-bold text-slate-800">{challenge.priority?.score}/100 · {challenge.priority?.level}</p>
             </div>
             <div className="rounded-xl bg-slate-50 p-3">
-              <p className="text-[0.66rem] font-bold uppercase text-slate-400">Similar challenges</p>
-              <p className="text-[0.86rem] font-bold text-slate-800">{challenge.ai?.duplicates?.length ?? 0} found</p>
+              <p className="text-[0.66rem] font-bold uppercase text-slate-400">{t('Similar challenges')}</p>
+              <p className="text-[0.86rem] font-bold text-slate-800">{challenge.ai?.duplicates.length ?? 0} found</p>
             </div>
           </div>
-          <MatchList kind="university" matches={challenge.ai?.universityMatches?.slice(0, 3) ?? []} />
+          <MatchList kind="university" matches={challenge.ai?.universityMatches.slice(0, 3) ?? []} />
           <div>
-            <label className="label">Validation note</label>
+            <label className="label">{t('Validation note')}</label>
             <textarea rows={2} className="field resize-none" value={note} onChange={(e) => setNote(e.target.value)} />
           </div>
           <div className="flex justify-end gap-2">
             <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
-            <button className="btn btn-primary" onClick={submit}><ShieldCheck size={15} />{t ? t('govt.validateRoute') : 'Validate & Route'}</button>
-          </div>
-        </div>
-      )}
-    </Modal>
-  );
-}
-
-/* ── Government review → approval → deployment ──────────────────────── */
-function ReviewQueue({ analytics: a }) {
-  const { challenges, dispatch, submitReview, toast } = usePlatform();
-  const { user, profile } = useAuth();
-  const [open, setOpen] = useState(null);
-  const [reviewFor, setReviewFor] = useState(null);
-  const [tab, setTab] = useState('pending');
-
-  const officer = profile?.full_name || user?.user_metadata?.full_name || 'District Innovation Cell';
-  const live = (c) => challenges.find((x) => x.id === c.id) ?? c;
-
-  const pending = a.awaitingReview.filter((c) => c.status !== 'govt_review');
-  const approved = challenges.filter((c) => c.status === 'govt_review');
-  const deployed = a.deployed;
-  const list = tab === 'pending' ? pending : tab === 'approved' ? approved : deployed;
-
-  const deploy = (c) => {
-    dispatch({ type: 'DEPLOY', id: c.id, by: officer });
-    toast(`${c.code} deployed — citizens can now see it and give feedback`, 'success');
-  };
-
-  return (
-    <div className="space-y-4">
-      <div className="rounded-2xl p-5 text-white relative overflow-hidden" style={{ background: `linear-gradient(120deg,${R.hex},#0f766e)` }}>
-        <motion.div className="absolute -right-12 -top-16 w-56 h-56 rounded-full bg-white/10 anim-float" />
-        <div className="relative">
-          <p className="text-[0.72rem] font-bold uppercase tracking-widest opacity-80">Prototype → Review → Deployment</p>
-          <h2 className="font-display text-2xl sm:text-3xl font-extrabold mt-1">
-            {pending.length} solution{pending.length === 1 ? '' : 's'} awaiting your review
-          </h2>
-          <p className="text-white/85 text-[0.9rem] mt-1.5 max-w-2xl">
-            Approve a prototype to clear it for deployment, or send it back to the university with the changes you need.
-            Every decision is written to the shared project record instantly.
-          </p>
-        </div>
-      </div>
-
-      <Tabs accent={R.hex} active={tab} onChange={setTab} tabs={[
-        { key: 'pending', label: `Awaiting review (${pending.length})` },
-        { key: 'approved', label: `Approved, ready to deploy (${approved.length})` },
-        { key: 'deployed', label: `Deployed (${deployed.length})` },
-      ]} />
-
-      {list.length === 0 ? (
-        <Empty icon={Icons.Gavel} title="Nothing in this stage"
-          sub="Prototypes published by universities land here for government review before deployment." />
-      ) : (
-        <div className="grid xl:grid-cols-2 gap-4">
-          {list.map((c) => (
-            <ProjectProgressCard key={c.id} challenge={c} accent={R.hex} onOpen={setOpen}
-              actions={(
-                <>
-                  {tab === 'pending' && (
-                    <button className="btn btn-sm text-white" style={{ background: R.hex }} onClick={() => setReviewFor(c)}>
-                      <Gavel size={13} />Review solution
-                    </button>
-                  )}
-                  {tab === 'approved' && (
-                    <button className="btn btn-sm text-white" style={{ background: R.hex }} onClick={() => deploy(c)}>
-                      <Rocket size={13} />Deploy solution
-                    </button>
-                  )}
-                  {tab === 'deployed' && STAGE_INDEX[c.status] < STAGE_INDEX.impact_measured && (
-                    <button className="btn btn-sm text-white" style={{ background: R.hex }}
-                      onClick={() => { dispatch({ type: 'ADVANCE', id: c.id, stage: 'impact_measured', by: officer }); toast(`Impact recorded for ${c.code}`, 'success'); }}>
-                      <ArrowRight size={13} />Record measured impact
-                    </button>
-                  )}
-                  {c.university && <Chip color={ROLES.varsity.deep} bg={ROLES.varsity.soft}>{c.university.short}</Chip>}
-                  {c.reviews?.[0] && (
-                    <Chip color={c.reviews[0].decision === 'approved' ? '#059669' : '#b45309'}
-                      bg={c.reviews[0].decision === 'approved' ? '#ecfdf5' : '#fff7ed'}>
-                      {c.reviews[0].decision === 'approved' ? <CheckCircle2 size={11} /> : <RotateCcw size={11} />}
-                      {c.reviews[0].decision === 'approved' ? 'Approved' : 'Changes requested'}
-                    </Chip>
-                  )}
-                </>
-              )} />
-          ))}
-        </div>
-      )}
-
-      <ChallengeDetail challenge={open ? live(open) : null} open={!!open} onClose={() => setOpen(null)} role="govt"
-        actions={open && STAGE_INDEX[live(open).status] < STAGE_INDEX.deployment && (
-          <button className="btn btn-primary" onClick={() => { setReviewFor(live(open)); setOpen(null); }}>
-            <Gavel size={15} />Review this solution
-          </button>
-        )} />
-
-      <ReviewModal challenge={reviewFor ? live(reviewFor) : null} officer={officer}
-        onClose={() => setReviewFor(null)}
-        onSubmit={(decision, note) => {
-          submitReview(reviewFor, { decision, note, reviewer: officer });
-          toast(decision === 'approved'
-            ? `${reviewFor.code} approved — ready for deployment`
-            : `${reviewFor.code} sent back to the university`, decision === 'approved' ? 'success' : 'warn');
-          setReviewFor(null);
-        }} />
-    </div>
-  );
-}
-
-function ReviewModal({ challenge, officer, onClose, onSubmit }) {
-  const [note, setNote] = useState('Prototype inspected in the field. Performance and safety verified.');
-  const open = !!challenge;
-  const proto = challenge?.prototypeData;
-
-  return (
-    <Modal open={open} onClose={onClose} accent={R.hex} width="max-w-2xl"
-      title="Government review of the solution" subtitle={challenge ? `${challenge.code} · ${challenge.title}` : ''}>
-      {challenge && (
-        <div className="space-y-4">
-          <div className="grid sm:grid-cols-3 gap-3">
-            <div className="rounded-xl p-3" style={{ background: 'var(--surface-2)' }}>
-              <p className="text-[0.66rem] font-bold uppercase text-slate-400">University</p>
-              <p className="text-[0.84rem] font-bold text-slate-800">{challenge.university?.short ?? '—'}</p>
-            </div>
-            <div className="rounded-xl p-3" style={{ background: 'var(--surface-2)' }}>
-              <p className="text-[0.66rem] font-bold uppercase text-slate-400">Industry partners</p>
-              <p className="text-[0.84rem] font-bold text-slate-800">{challenge.partners?.length || 0}</p>
-            </div>
-            <div className="rounded-xl p-3" style={{ background: 'var(--surface-2)' }}>
-              <p className="text-[0.66rem] font-bold uppercase text-slate-400">Milestones done</p>
-              <p className="text-[0.84rem] font-bold text-slate-800">
-                {projectStats(challenge).milestonesDone}/{projectStats(challenge).milestonesTotal || 0}
-              </p>
-            </div>
-          </div>
-
-          {proto && (
-            <div className="rounded-xl p-3.5" style={{ background: R.soft }}>
-              <p className="text-[0.78rem] font-bold" style={{ color: R.deep }}>{proto.title} · TRL {proto.trl}</p>
-              <p className="text-[0.82rem] text-slate-600 mt-1">{proto.abstract}</p>
-            </div>
-          )}
-
-          {challenge.attachments?.length > 0 && <EvidenceGallery attachments={challenge.attachments} title="Original citizen evidence" compact />}
-
-          <div>
-            <label className="label">Review note</label>
-            <textarea rows={3} className="field resize-none" value={note} onChange={(e) => setNote(e.target.value)} />
-            <p className="text-[0.7rem] text-slate-400 mt-1">Reviewed by {officer}</p>
-          </div>
-
-          <div className="flex flex-wrap justify-end gap-2">
-            <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
-            <button className="btn btn-ghost text-amber-700" onClick={() => onSubmit('changes_requested', note)}>
-              <RotateCcw size={15} />Request changes
-            </button>
-            <button className="btn btn-primary" onClick={() => onSubmit('approved', note)}>
-              <CheckCircle2 size={15} />Approve for deployment
-            </button>
+            <button className="btn btn-primary" onClick={submit}><ShieldCheck size={15} />{t('govt.validateRoute')}</button>
           </div>
         </div>
       )}
@@ -463,12 +301,12 @@ function MapAnalytics({ analytics: a }) {
         </div>
         <div className="space-y-4">
           <div className="card p-5">
-            <p className="font-display font-bold text-slate-900 mb-2">District ranking</p>
+            <p className="font-display font-bold text-slate-900 mb-2">{t('District ranking')}</p>
             <DistrictList data={a.byDistrict} selected={sel} onSelect={setSel} metric={metric} />
           </div>
           <div className="card p-5">
-            <p className="font-display font-bold text-slate-900 mb-2">Category distribution</p>
-            <VBar data={a.byCategory} color={R.hex} height={200} />
+            <p className="font-display font-bold text-slate-900 mb-2">{t('Category distribution')}</p>
+            <VBar data={a.byCategory.map((d) => ({ ...d, name: t(`cat.${d.name}`, d.name) }))} color={R.hex} height={200} />
           </div>
         </div>
       </div>
@@ -491,8 +329,10 @@ function MapAnalytics({ analytics: a }) {
 
 /* ── Project monitoring ─────────────────────────────────────────────── */
 function Monitoring({ analytics: a }) {
+  const { t } = useShell();
   const { challenges, dispatch, toast } = usePlatform();
   const [open, setOpen] = useState(null);
+  const [reviewFor, setReviewFor] = useState(null);
   const [tab, setTab] = useState('active');
 
   const active = challenges.filter((c) => STAGE_INDEX[c.status] >= STAGE_INDEX.university_matched && STAGE_INDEX[c.status] < STAGE_INDEX.deployment);
@@ -503,24 +343,24 @@ function Monitoring({ analytics: a }) {
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Stat icon={Icons.Activity} label="Active projects" value={active.length} color={R.hex} />
-        <Stat icon={Icons.AlarmClock} label="Delayed milestones" value={delayed.length} color="#dc2626" delay={0.08} />
-        <Stat icon={Icons.CheckCircle2} label="Completed" value={completed.length} color="#6366f1" delay={0.16} />
-        <Stat icon={Icons.Percent} label="Completion rate" value={Math.round((completed.length / Math.max(1, a.active)) * 100)} suffix="%" color="#f59e0b" delay={0.24} />
+        <Stat icon={Icons.Activity} label={t('Active projects')} value={active.length} color={R.hex} />
+        <Stat icon={Icons.AlarmClock} label={t('Delayed milestones')} value={delayed.length} color="#dc2626" delay={0.08} />
+        <Stat icon={Icons.CheckCircle2} label={t('Completed')} value={completed.length} color="#6366f1" delay={0.16} />
+        <Stat icon={Icons.Percent} label={t('Completion rate')} value={Math.round((completed.length / Math.max(1, a.active)) * 100)} suffix="%" color="#f59e0b" delay={0.24} />
       </div>
 
       <div className="card p-5">
-        <p className="font-display font-bold text-slate-900 mb-2">Pipeline distribution</p>
+        <p className="font-display font-bold text-slate-900 mb-2">{t('Pipeline distribution')}</p>
         <VBar data={a.byStage} color={R.hex} height={220} />
       </div>
 
       <Tabs accent={R.hex} active={tab} onChange={setTab} tabs={[
-        { key: 'active', label: `Active (${active.length})` },
-        { key: 'delayed', label: `Delayed (${delayed.length})` },
-        { key: 'completed', label: `Completed (${completed.length})` },
+        { key: 'active', label: t('tab.active', '', { n: active.length }) },
+        { key: 'delayed', label: t('tab.delayed', '', { n: delayed.length }) },
+        { key: 'completed', label: t('tab.completed', '', { n: completed.length }) },
       ]} />
 
-      {list.length === 0 ? <Empty icon={Icons.Activity} title="Nothing here" sub="No projects in this state right now." />
+      {list.length === 0 ? <Empty icon={Icons.Activity} title={t('Nothing here')} sub={t('No projects in this state right now.')} />
         : (
           <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
             {list.map((c, i) => (
@@ -528,10 +368,16 @@ function Monitoring({ analytics: a }) {
                 actions={(
                   <>
                     {c.university && <Chip color={ROLES.varsity.deep} bg={ROLES.varsity.soft}>{c.university.short}</Chip>}
-                    {STAGE_INDEX[c.status] >= STAGE_INDEX.deployment && STAGE_INDEX[c.status] < STAGE_INDEX.impact_measured && (
+                    {STAGE_INDEX[c.status] >= STAGE_INDEX.prototype && STAGE_INDEX[c.status] < STAGE_INDEX.deployment && (
+                      <button className="btn btn-sm text-white" style={{ background: R.hex }}
+                        onClick={() => setReviewFor(c)}>
+                        <ShieldCheck size={13} />{t('govt.review.cta', 'Review')}
+                      </button>
+                    )}
+                    {STAGE_INDEX[c.status] === STAGE_INDEX.deployment && (
                       <button className="btn btn-sm text-white" style={{ background: R.hex }}
                         onClick={() => { dispatch({ type: 'ADVANCE', id: c.id, stage: 'impact_measured' }); toast(`Impact recorded for ${c.code}`, 'success'); }}>
-                        <ArrowRight size={13} />Record impact
+                        <ArrowRight size={13} />{t('Record impact')}
                       </button>
                     )}
                   </>
@@ -540,12 +386,75 @@ function Monitoring({ analytics: a }) {
           </div>
         )}
       <ChallengeDetail challenge={open} open={!!open} onClose={() => setOpen(null)} role="govt" />
+      <ReviewModal challenge={reviewFor} onClose={() => setReviewFor(null)} />
     </div>
+  );
+}
+
+/* ── Government prototype / deployment review ───────────────────────── */
+function ReviewModal({ challenge, onClose }) {
+  const { t } = useShell();
+  const { dispatch, toast } = usePlatform();
+  const [note, setNote] = useState('Prototype inspected in the field. Meets the community requirement.');
+  const [busy, setBusy] = useState(false);
+
+  const decide = async (decision) => {
+    setBusy(true);
+    dispatch({
+      type: 'GOVERNMENT_REVIEW', id: challenge.id, decision, note,
+      reviewer: 'District Innovation Cell',
+    });
+    toast(decision === 'approved'
+      ? `${challenge.code} approved for deployment`
+      : `${challenge.code} sent back for changes`, decision === 'approved' ? 'success' : 'warn');
+    setBusy(false);
+    onClose();
+  };
+
+  return (
+    <Modal open={!!challenge} onClose={onClose} accent={R.hex} width="max-w-xl"
+      title={t('govt.review.title', 'Government review')}
+      subtitle={challenge ? `${challenge.code} · ${challenge.title}` : ''}>
+      {challenge && (
+        <div className="space-y-4">
+          <div className="rounded-xl p-3.5" style={{ background: R.soft }}>
+            <p className="text-[0.78rem] font-bold" style={{ color: R.deep }}>
+              {t('govt.review.stage', 'Current stage')}: {challenge.status}
+            </p>
+            <p className="text-[0.82rem] text-slate-600 mt-1">
+              {challenge.university?.name ?? '—'}
+              {challenge.partners?.length ? ` · ${challenge.partners.map((p) => p.short).join(', ')}` : ''}
+            </p>
+          </div>
+          {challenge.prototypeData && (
+            <div className="card p-3">
+              <p className="font-display font-bold text-[0.9rem] text-slate-900">{challenge.prototypeData.title}</p>
+              <p className="text-[0.8rem] text-slate-500 mt-1">{challenge.prototypeData.abstract}</p>
+              <p className="text-[0.74rem] text-slate-400 mt-1.5">TRL {challenge.prototypeData.trl}</p>
+            </div>
+          )}
+          <div>
+            <label className="label">{t('govt.review.note', 'Review note')}</label>
+            <textarea rows={3} className="field resize-none" value={note} onChange={(e) => setNote(e.target.value)} />
+          </div>
+          <div className="flex flex-wrap justify-end gap-2">
+            <button className="btn btn-ghost" onClick={onClose}>{t('common.cancel')}</button>
+            <button className="btn btn-ghost" disabled={busy} onClick={() => decide('changes_requested')}>
+              {t('govt.review.changes', 'Request changes')}
+            </button>
+            <button className="btn btn-primary" disabled={busy} onClick={() => decide('approved')}>
+              <ShieldCheck size={15} />{t('govt.review.approve', 'Approve deployment')}
+            </button>
+          </div>
+        </div>
+      )}
+    </Modal>
   );
 }
 
 /* ── Ecosystem ──────────────────────────────────────────────────────── */
 function EcosystemView() {
+  const { t } = useShell();
   const { challenges } = usePlatform();
   const [tab, setTab] = useState('universities');
 
@@ -562,14 +471,14 @@ function EcosystemView() {
   return (
     <div className="space-y-4">
       <Tabs accent={R.hex} active={tab} onChange={setTab} tabs={[
-        { key: 'universities', label: `Universities (${UNIVERSITIES.length})` },
-        { key: 'industry', label: `Industry partners (${INDUSTRIES.length})` },
+        { key: 'universities', label: t('tab.universities', '', { n: UNIVERSITIES.length }) },
+        { key: 'industry', label: t('tab.industry', '', { n: INDUSTRIES.length }) },
       ]} />
 
       {tab === 'universities' && (
         <>
           <div className="card p-5">
-            <p className="font-display font-bold text-slate-900 mb-2">University participation</p>
+            <p className="font-display font-bold text-slate-900 mb-2">{t('University participation')}</p>
             <HBar data={uniStats.map((u) => ({ name: u.short, count: u.accepted }))} color={ROLES.varsity.hex} height={230} />
           </div>
           <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -593,7 +502,7 @@ function EcosystemView() {
                     ))}
                   </div>
                   <div className="flex flex-wrap gap-1 mt-2.5">
-                    {u.domains.slice(0, 3).map((d) => <Chip key={d} color={catMeta(d).hex}>{d}</Chip>)}
+                    {u.domains.slice(0, 3).map((d) => <Chip key={d} color={catMeta(d).hex}>{t(`cat.${d}`, d)}</Chip>)}
                   </div>
                 </div>
               </Reveal>
@@ -605,7 +514,7 @@ function EcosystemView() {
       {tab === 'industry' && (
         <>
           <div className="card p-5">
-            <p className="font-display font-bold text-slate-900 mb-2">Industry engagement</p>
+            <p className="font-display font-bold text-slate-900 mb-2">{t('Industry engagement')}</p>
             <HBar data={firmStats.map((f) => ({ name: f.short, count: f.supported }))} color={ROLES.industry.hex} height={250} />
           </div>
           <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -643,6 +552,7 @@ function EcosystemView() {
 
 /* ── Impact ─────────────────────────────────────────────────────────── */
 function ImpactView({ analytics: a }) {
+  const { t } = useShell();
   const { challenges } = usePlatform();
   const [open, setOpen] = useState(null);
   const done = challenges.filter((c) => c.impact);
@@ -655,27 +565,27 @@ function ImpactView({ analytics: a }) {
         <motion.div className="absolute -right-12 -bottom-16 w-56 h-56 rounded-full bg-white/10 anim-float" />
         <div className="relative grid sm:grid-cols-3 gap-6 items-center">
           <div className="sm:col-span-2">
-            <p className="text-[0.72rem] font-bold uppercase tracking-widest opacity-80">Verified social outcomes</p>
+            <p className="text-[0.72rem] font-bold uppercase tracking-widest opacity-80">{t('Verified social outcomes')}</p>
             <p className="font-display text-4xl font-extrabold mt-1"><Counter to={total} /></p>
-            <p className="text-white/90 font-semibold">citizens benefited across {new Set(done.map((c) => c.district)).size} districts</p>
+            <p className="text-white/90 font-semibold">{t('govt.impactLine', '', { n: new Set(done.map((c) => c.district)).size })}</p>
           </div>
           <div className="flex sm:justify-end">
             <div className="text-center">
               <p className="font-display text-3xl font-extrabold"><Counter to={avgSustain} suffix="%" /></p>
-              <p className="text-[0.72rem] font-semibold opacity-85">avg. sustainability score</p>
+              <p className="text-[0.72rem] font-semibold opacity-85">{t('govt.avgSustain')}</p>
             </div>
           </div>
         </div>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Stat icon={Icons.CheckCircle2} label="Solutions deployed" value={done.length} color={R.hex} />
-        <Stat icon={Icons.GraduationCap} label="Universities contributing" value={a.universities} color="#6366f1" delay={0.08} />
-        <Stat icon={Icons.Factory} label="Industry partners engaged" value={a.partners} color="#f59e0b" delay={0.16} />
-        <Stat icon={Icons.Users} label="Students involved" value={a.students} color="#0891b2" delay={0.24} />
+        <Stat icon={Icons.CheckCircle2} label={t('Solutions deployed')} value={done.length} color={R.hex} />
+        <Stat icon={Icons.GraduationCap} label={t('Universities contributing')} value={a.universities} color="#6366f1" delay={0.08} />
+        <Stat icon={Icons.Factory} label={t('Industry partners engaged')} value={a.partners} color="#f59e0b" delay={0.16} />
+        <Stat icon={Icons.Users} label={t('Students involved')} value={a.students} color="#0891b2" delay={0.24} />
       </div>
 
-      {done.length === 0 ? <Empty icon={Icons.TrendingUp} title="No measured impact yet" sub="Impact appears once projects reach deployment." />
+      {done.length === 0 ? <Empty icon={Icons.TrendingUp} title={t('No measured impact yet')} sub={t('Impact appears once projects reach deployment.')} />
         : (
           <div className="grid md:grid-cols-2 gap-4">
             {done.map((c, i) => (

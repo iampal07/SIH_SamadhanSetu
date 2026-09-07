@@ -2,6 +2,7 @@ import { Outlet, Link } from 'react-router-dom';
 import { Sparkles, Mail, MapPin } from 'lucide-react';
 import PublicNav from '../../components/navigation/PublicNav';
 import { ROLES } from '../../data/constants';
+import { useShell } from '../../context/AppShellContext';
 
 export default function PublicLayout() {
   return (
@@ -14,6 +15,7 @@ export default function PublicLayout() {
 }
 
 export function Footer() {
+  const { t } = useShell();
   return (
     <footer className="surface-ink pt-14 pb-8 mt-0">
       <div className="max-w-6xl mx-auto px-5 sm:px-6">
@@ -29,14 +31,14 @@ export function Footer() {
               <span className="inline-flex items-center gap-1.5"><Mail size={13} />hello@samadhansetu.in</span>
             </div>
           </div>
-          <FooterCol title="Platform" links={[
+          <FooterCol title={t('Platform')} links={[
             ['Home', '/'], ['How It Works', '/how-it-works'], ['Live Simulation', '/simulation'], ['About', '/about'],
           ]} />
           <FooterCol title="Dashboards" links={[
             ['Citizen', '/citizen'], ['University', '/university'], ['Industry', '/industry'], ['Government', '/government'],
           ]} />
           <div>
-            <p className="font-display font-bold text-sm mb-3">Stakeholders</p>
+            <p className="font-display font-bold text-sm mb-3">{t('Stakeholders')}</p>
             <div className="space-y-2">
               {Object.values(ROLES).filter((r) => r.key !== 'ai').map((r) => (
                 <div key={r.key} className="flex items-center gap-2 text-[0.82rem] text-slate-400">

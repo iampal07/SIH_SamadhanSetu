@@ -8,11 +8,10 @@ import { catMeta, ROLES, STAGE_INDEX } from '../../data/constants';
 import { Modal, Tabs, Chip, Bar, ScoreRing, Avatar, Counter, Empty } from './ui';
 import { AIClassification, AIPriority, AIDuplicates, MatchList, DisciplineWeb } from './AIPanel';
 import { LifecycleTrack, HistoryTimeline, StageBadge } from '../workflow/Lifecycle';
-import { EvidenceGallery, ActivityFeed, FeedbackList, projectStats } from '../workflow/ProjectProgress';
 import { fmtFull, fmtDate, timeAgo, priorityTone, cx } from '../../utils/format';
 
 export default function ChallengeDetail({ challenge, open, onClose, role = 'citizen', actions }) {
-  const { dispatch, postUpdate } = usePlatform();
+  const { dispatch } = usePlatform();
   const { t } = useShell();
   const [tab, setTab] = useState('overview');
   const [msg, setMsg] = useState('');
@@ -20,15 +19,11 @@ export default function ChallengeDetail({ challenge, open, onClose, role = 'citi
 
   const tabs = useMemo(() => {
     const tabsList = [{ key: 'overview', label: t('common.overview') }];
-    if (challenge?.attachments?.length) tabsList.push({ key: 'evidence', label: 'Evidence' });
     if (challenge?.ai) tabsList.push({ key: 'ai', label: t('common.aiInsights') });
     if (challenge?.team) tabsList.push({ key: 'team', label: t('common.team') });
     if (challenge?.proposal) tabsList.push({ key: 'project', label: t('common.milestones') });
-    if (challenge?.prototypeData) tabsList.push({ key: 'solution', label: 'Solution' });
     if (challenge?.partners?.length) tabsList.push({ key: 'partners', label: t('common.partners') });
     if (challenge?.impact) tabsList.push({ key: 'impact', label: t('common.impact') });
-    if (challenge?.feedback?.length) tabsList.push({ key: 'feedback', label: `Feedback (${challenge.feedback.length})` });
-    tabsList.push({ key: 'activity', label: 'Activity' });
     tabsList.push({ key: 'timeline', label: t('common.timeline') });
     tabsList.push({ key: 'discussion', label: t('common.discussion') });
     return tabsList;
@@ -41,12 +36,10 @@ export default function ChallengeDetail({ challenge, open, onClose, role = 'citi
   const p = c.priority ? priorityTone(c.priority.level) : null;
   const activeTab = tabs.some((t) => t.key === tab) ? tab : 'overview';
 
-  const stats = projectStats(c);
-
   const send = () => {
     if (!msg.trim()) return;
-    postUpdate(c, {
-      role,
+    dispatch({
+      type: 'POST_UPDATE', id: c.id, role,
       by: role === 'citizen' ? 'Citizen' : role === 'varsity' ? (c.university?.short ?? 'University Team') : role === 'industry' ? 'Industry Partner' : 'District Cell',
       text: msg.trim(),
     });
@@ -56,13 +49,13 @@ export default function ChallengeDetail({ challenge, open, onClose, role = 'citi
   return (
     <Modal open={open} onClose={onClose} width="max-w-4xl" accent={accent}
       title={c.title}
-      subtitle={`${c.code} · ${c.village}, ${c.district} · submitted ${timeAgo(c.createdAt)} by ${c.citizen.name}`}>
+      subtitle={`${c.code} · ${c.village}, ${c.district} · ${timeAgo(c.createdAt)} · ${c.citizen.name}`}>
       <div className="space-y-4">
         <div className="flex flex-wrap items-center gap-2">
           <Chip color={cat.hex}><CatIcon size={11} />{t(`cat.${c.category}`, c.category)}</Chip>
-          {p && <span className="chip" style={{ background: p.bg, color: p.fg }}>Priority {c.priority.score} · {c.priority.level}</span>}
+          {p && <span className="chip" style={{ background: p.bg, color: p.fg }}>{t('common.priority')} {c.priority.score} · {t(`priority.${c.priority.level}`, c.priority.level)}</span>}
           <StageBadge status={c.status} />
-          {c.validation?.status === 'validated' && <Chip color={ROLES.govt.hex} bg={ROLES.govt.soft}><CheckCircle2 size={11} />Government validated</Chip>}
+          {c.validation?.status === 'validated' && <Chip color={ROLES.govt.hex} bg={ROLES.govt.soft}><CheckCircle2 size={11} />{t('common.governmentValidated')}</Chip>}
           {c.university && <Chip color={ROLES.varsity.hex} bg={ROLES.varsity.soft}>{c.university.short}</Chip>}
           {c.partners?.map((pt) => <Chip key={pt.id} color={ROLES.industry.hex} bg={ROLES.industry.soft}>{pt.short}</Chip>)}
         </div>
@@ -79,80 +72,36 @@ export default function ChallengeDetail({ challenge, open, onClose, role = 'citi
           {activeTab === 'overview' && (
             <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
               <div>
-                <p className="text-[0.72rem] font-bold uppercase tracking-wide text-slate-400 mb-1.5">Problem description</p>
+                <p className="text-[0.72rem] font-bold uppercase tracking-wide text-slate-400 mb-1.5">{t('common.problemDescription')}</p>
                 <p className="text-[0.88rem] text-slate-700 leading-relaxed">{c.description}</p>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <Facts label="Location" value={`${c.village}`} sub={c.district} icon={MapPin} />
-                <Facts label="People affected" value={fmtFull(c.affected)} sub="reported" icon={Users} />
-                <Facts label="Community support" value={fmtFull(c.upvotes)} sub="endorsements" icon={Icons.ThumbsUp} />
-                <Facts label="Submitted" value={fmtDate(c.createdAt)} sub={c.citizen.name} icon={Icons.Calendar} />
+                <Facts label={t('common.location')} value={`${c.village}`} sub={c.district} icon={MapPin} />
+                <Facts label={t('common.peopleAffected')} value={fmtFull(c.affected)} sub={t('common.reported')} icon={Users} />
+                <Facts label={t('common.communitySupport')} value={fmtFull(c.upvotes)} sub={t('common.endorsements')} icon={Icons.ThumbsUp} />
+                <Facts label={t('common.submitted')} value={fmtDate(c.createdAt)} sub={c.citizen.name} icon={Icons.Calendar} />
               </div>
-              {c.attachments?.length > 0 && <EvidenceGallery attachments={c.attachments} />}
-              {c.university && (
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  <Facts label="Completion" value={`${stats.completion}%`} sub={stats.stage.label} icon={Icons.Gauge} />
-                  <Facts label="Milestones" value={stats.milestonesTotal ? `${stats.milestonesDone}/${stats.milestonesTotal}` : '—'} sub="completed" icon={Icons.ListChecks} />
-                  <Facts label="Team" value={stats.teamSize || '—'} sub={c.team?.name ?? 'not formed yet'} icon={Icons.Users} />
-                  <Facts label="Industry partners" value={stats.partners || '—'} sub={c.partners?.map((p) => p.short).join(', ') || 'none yet'} icon={Icons.Factory} />
+              {c.attachments?.length > 0 && (
+                <div>
+                  <p className="text-[0.72rem] font-bold uppercase tracking-wide text-slate-400 mb-1.5">{t('common.attachments')}</p>
+                  <div className="flex flex-wrap gap-2">
+                    {c.attachments.map((a) => (
+                      <span key={a.name} className="inline-flex items-center gap-2 text-[0.75rem] font-medium text-slate-600 bg-slate-50 border border-slate-100 rounded-lg px-2.5 py-1.5">
+                        <Paperclip size={12} className="text-slate-400" />{a.name}
+                        <span className="text-slate-300">{a.size}</span>
+                      </span>
+                    ))}
+                  </div>
                 </div>
               )}
               {c.validation?.note && (
                 <div className="rounded-xl p-3" style={{ background: ROLES.govt.soft }}>
                   <p className="text-[0.72rem] font-bold" style={{ color: ROLES.govt.deep }}>
-                    Government note · {c.validation.by} · {fmtDate(c.validation.at)}
+                    {t('role.govt')} · {c.validation.by} · {fmtDate(c.validation.at)}
                   </p>
                   <p className="text-[0.82rem] text-slate-700 mt-1">{c.validation.note}</p>
                 </div>
               )}
-            </motion.div>
-          )}
-
-          {activeTab === 'evidence' && (
-            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
-              <EvidenceGallery attachments={c.attachments ?? []} />
-            </motion.div>
-          )}
-
-          {activeTab === 'solution' && c.prototypeData && (
-            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
-              <div className="card p-4">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <Chip color={ROLES.varsity.deep} bg={ROLES.varsity.soft}>TRL {c.prototypeData.trl}</Chip>
-                  {STAGE_INDEX[c.status] >= STAGE_INDEX.prototype && <Chip color="#059669" bg="#ecfdf5"><CheckCircle2 size={11} />Prototype Ready</Chip>}
-                </div>
-                <p className="font-display font-bold text-slate-900 mt-2">{c.prototypeData.title}</p>
-                <p className="text-[0.84rem] text-slate-600 mt-1.5 leading-relaxed">{c.prototypeData.abstract}</p>
-                <div className="flex flex-wrap gap-4 mt-3 pt-3 border-t text-[0.78rem]" style={{ borderColor: 'var(--border)' }}>
-                  <span className="text-slate-500">Scaling budget <b className="text-slate-800">₹{Number(c.prototypeData.estimatedFunding || 0).toLocaleString('en-IN')}</b></span>
-                  <span className="text-slate-500">Funding secured <b className="text-slate-800">₹{Number(c.prototypeData.fundingRaised || 0).toLocaleString('en-IN')}</b></span>
-                  <span className="text-slate-500">Lead <b className="text-slate-800">{c.prototypeData.facultyLead}</b></span>
-                </div>
-              </div>
-              {(c.prototypeData.integrationRequirements ?? []).length > 0 && (
-                <div className="card p-4">
-                  <p className="text-[0.72rem] font-bold uppercase tracking-wide text-slate-400 mb-2">Integration requirements</p>
-                  <div className="space-y-1.5">
-                    {c.prototypeData.integrationRequirements.map((req, i) => (
-                      <div key={i} className="flex items-start gap-2 text-[0.8rem] text-slate-600">
-                        <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 mt-1.5 shrink-0" />{req}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </motion.div>
-          )}
-
-          {activeTab === 'feedback' && (
-            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
-              <FeedbackList challenge={c} />
-            </motion.div>
-          )}
-
-          {activeTab === 'activity' && (
-            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
-              <ActivityFeed challenge={c} />
             </motion.div>
           )}
 
@@ -172,7 +121,7 @@ export default function ChallengeDetail({ challenge, open, onClose, role = 'citi
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <div>
                   <p className="font-display font-bold text-slate-900">{c.team.name}</p>
-                  <p className="text-[0.72rem] text-slate-400">{c.university?.name} · formed {timeAgo(c.team.formedAt)}</p>
+                  <p className="text-[0.72rem] text-slate-400">{c.university?.name} · {t('common.formed')} {timeAgo(c.team.formedAt)}</p>
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   {c.team.disciplines.map((d) => <Chip key={d} color={ROLES.varsity.hex} bg={ROLES.varsity.soft}>{d}</Chip>)}
@@ -201,11 +150,11 @@ export default function ChallengeDetail({ challenge, open, onClose, role = 'citi
               <div className="card p-4">
                 <p className="font-display font-bold text-slate-900">{c.proposal.title}</p>
                 <p className="text-[0.84rem] text-slate-600 mt-1.5 leading-relaxed">{c.proposal.objective}</p>
-                <p className="text-[0.8rem] text-slate-500 mt-2"><b className="text-slate-600">Approach: </b>{c.proposal.approach}</p>
+                <p className="text-[0.8rem] text-slate-500 mt-2"><b className="text-slate-600">{t('common.approach')}: </b>{c.proposal.approach}</p>
                 <div className="flex flex-wrap gap-4 mt-3 pt-3 border-t border-slate-100 text-[0.78rem]">
-                  <span className="text-slate-500">Budget <b className="text-slate-800">{c.proposal.budget}</b></span>
-                  <span className="text-slate-500">Duration <b className="text-slate-800">{c.proposal.duration}</b></span>
-                  <span className="text-slate-500">Created <b className="text-slate-800">{fmtDate(c.proposal.createdAt)}</b></span>
+                  <span className="text-slate-500">{t('common.budget')} <b className="text-slate-800">{c.proposal.budget}</b></span>
+                  <span className="text-slate-500">{t('common.duration')} <b className="text-slate-800">{c.proposal.duration}</b></span>
+                  <span className="text-slate-500">{t('common.created')} <b className="text-slate-800">{fmtDate(c.proposal.createdAt)}</b></span>
                 </div>
               </div>
               <MilestoneList milestones={c.milestones} challengeId={c.id} editable={role === 'varsity'} />
@@ -223,13 +172,13 @@ export default function ChallengeDetail({ challenge, open, onClose, role = 'citi
                     </div>
                     <div className="min-w-0">
                       <p className="font-bold text-[0.88rem] text-slate-900 truncate">{pt.name}</p>
-                      <p className="text-[0.7rem] text-slate-400">{pt.type} · joined {timeAgo(pt.joinedAt)}</p>
+                      <p className="text-[0.7rem] text-slate-400">{pt.type} · {t('common.joined')} {timeAgo(pt.joinedAt)}</p>
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-1.5 mt-3">
                     {pt.supports.map((s) => <Chip key={s} color={ROLES.industry.deep} bg={ROLES.industry.soft}>{s}</Chip>)}
                   </div>
-                  <p className="text-[0.78rem] text-slate-500 mt-2">Committed support: <b className="text-slate-800">{pt.amount}</b></p>
+                  <p className="text-[0.78rem] text-slate-500 mt-2">{t('common.committedSupport')}: <b className="text-slate-800">{pt.amount}</b></p>
                 </div>
               ))}
             </motion.div>
@@ -240,9 +189,9 @@ export default function ChallengeDetail({ challenge, open, onClose, role = 'citi
               <div className="rounded-2xl p-5 text-white relative overflow-hidden"
                 style={{ background: 'linear-gradient(120deg,#059669,#0891b2)' }}>
                 <div className="absolute -right-8 -bottom-8 w-40 h-40 rounded-full bg-white/10" />
-                <p className="text-[0.72rem] font-bold uppercase tracking-widest opacity-80">Measured impact</p>
+                <p className="text-[0.72rem] font-bold uppercase tracking-widest opacity-80">{t('common.measuredImpact')}</p>
                 <p className="font-display text-3xl font-extrabold mt-1">
-                  <Counter to={c.impact.beneficiaries} /> <span className="text-lg font-bold opacity-90">people benefited</span>
+                  <Counter to={c.impact.beneficiaries} /> <span className="text-lg font-bold opacity-90">{t('common.peopleBenefited')}</span>
                 </p>
                 <p className="text-[0.84rem] opacity-90 mt-1.5 max-w-lg">{c.impact.summary}</p>
               </div>
@@ -258,9 +207,9 @@ export default function ChallengeDetail({ challenge, open, onClose, role = 'citi
                 ))}
               </div>
               <div className="card p-4 flex items-center gap-4">
-                <ScoreRing value={c.impact.sustainability} color="#059669" size={68} sub="sustain." />
+                <ScoreRing value={c.impact.sustainability} color="#059669" size={68} sub="%" />
                 <div>
-                  <p className="font-display font-bold text-slate-900">Sustainability score</p>
+                  <p className="font-display font-bold text-slate-900">{t('common.sustainability')}</p>
                   <p className="text-[0.78rem] text-slate-500 mt-0.5">
                     Community ownership, maintenance plan, local capacity and recurring cost were assessed after handover.
                     Project duration: <b>{c.impact.durationMonths} months</b>.
@@ -279,7 +228,7 @@ export default function ChallengeDetail({ challenge, open, onClose, role = 'citi
           {activeTab === 'discussion' && (
             <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
               <div className="flex gap-2">
-                <input className="field" placeholder="Post an update to all stakeholders…" value={msg}
+                <input className="field" placeholder={t('common.postUpdate')} value={msg}
                   onChange={(e) => setMsg(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && send()} />
                 <button className="btn btn-primary" onClick={send} disabled={!msg.trim()}><Send size={15} />{t('common.post')}</button>
               </div>
@@ -299,8 +248,7 @@ export default function ChallengeDetail({ challenge, open, onClose, role = 'citi
                   ))}
                 </div>
               ) : (
-                <Empty icon={Icons.MessageSquare} title="No updates yet"
-                  sub="Stakeholder updates posted here are visible to the citizen, university, industry partner and government." />
+                <Empty icon={Icons.MessageSquare} title={t('common.noUpdates')} sub={t('common.noUpdatesSub')} />
               )}
             </motion.div>
           )}
@@ -312,14 +260,15 @@ export default function ChallengeDetail({ challenge, open, onClose, role = 'citi
 
 export function MilestoneList({ milestones = [], challengeId, editable = false }) {
   const { dispatch } = usePlatform();
-  if (!milestones.length) return <Empty icon={Icons.ListChecks} title="No milestones yet" sub="Milestones are defined when the university publishes the project proposal." />;
+  const { t } = useShell();
+  if (!milestones.length) return <Empty icon={Icons.ListChecks} title={t('common.noMilestones')} sub={t('common.noMilestonesSub')} />;
   const done = milestones.filter((m) => m.status === 'completed').length;
 
   return (
     <div className="card p-4">
       <div className="flex items-center justify-between mb-3">
-        <p className="font-display font-bold text-slate-900">Milestones</p>
-        <span className="text-[0.75rem] font-semibold text-slate-500">{done} / {milestones.length} completed</span>
+        <p className="font-display font-bold text-slate-900">{t('common.milestones')}</p>
+        <span className="text-[0.75rem] font-semibold text-slate-500">{done} / {milestones.length} {t('common.completed')}</span>
       </div>
       <Bar value={(done / milestones.length) * 100} color="#4f46e5" />
       <div className="mt-4 space-y-2.5">
@@ -334,15 +283,15 @@ export function MilestoneList({ milestones = [], challengeId, editable = false }
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 flex-wrap">
                   <p className={cx('text-[0.84rem] font-semibold', m.status === 'completed' ? 'text-slate-400 line-through' : 'text-slate-800')}>{m.title}</p>
-                  {overdue && <Chip color="#dc2626" bg="#fef2f2">Delayed</Chip>}
+                  {overdue && <Chip color="var(--on-critical)" bg="var(--tint-critical)">{t('common.delayed')}</Chip>}
                 </div>
-                <p className="text-[0.7rem] text-slate-400">{m.owner} · due {fmtDate(m.due)}</p>
+                <p className="text-[0.7rem] text-slate-400">{m.owner} · {t('common.due')} {fmtDate(m.due)}</p>
                 {m.status === 'in_progress' && <div className="mt-1.5 max-w-xs"><Bar value={m.progress} color="#4f46e5" height={4} /></div>}
               </div>
               {editable && m.status !== 'completed' && (
                 <button className="btn btn-ghost btn-sm shrink-0"
                   onClick={() => dispatch({ type: 'UPDATE_MILESTONE', id: challengeId, milestoneId: m.id, status: m.status === 'pending' ? 'in_progress' : 'completed' })}>
-                  {m.status === 'pending' ? 'Start' : 'Complete'}
+                  {m.status === 'pending' ? t('common.start') : t('common.complete')}
                 </button>
               )}
             </motion.div>

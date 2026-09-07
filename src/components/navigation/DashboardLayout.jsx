@@ -85,6 +85,11 @@ export default function DashboardLayout({ role, nav, title, subtitle, user, chil
       </nav>
 
       <div className="p-3 border-t space-y-1" style={{ borderColor: 'var(--border)' }}>
+        {!collapsed && (
+          <div className="md:hidden flex items-center justify-between gap-2 pb-2">
+            <ShellControls compact />
+          </div>
+        )}
         {!collapsed && <p className="text-[0.6rem] font-bold uppercase tracking-widest text-slate-300 px-2 pb-1">{t('nav.switchWorkspace')}</p>}
         <div className={cx('flex gap-1.5', collapsed && 'flex-col items-center')}>
           {SWITCH.filter((s) => s.role !== role).map((s) => (
@@ -149,7 +154,7 @@ export default function DashboardLayout({ role, nav, title, subtitle, user, chil
                     <div className="fixed inset-0 z-0" onClick={() => setBell(false)} />
                     <motion.div initial={{ opacity: 0, y: 8, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 4 }}
                       className="absolute right-0 top-12 w-[320px] max-w-[88vw] rounded-2xl shadow-xl border z-10 overflow-hidden"
-                      style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
+                      style={{ background: 'var(--surface-raised)', borderColor: 'var(--border)' }}>
                       <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: 'var(--border)' }}>
                         <p className="font-display font-bold text-[0.9rem]">{t('common.notifications')}</p>
                         <button className="text-[0.72rem] font-bold inline-flex items-center gap-1" style={{ color: r.hex }}
