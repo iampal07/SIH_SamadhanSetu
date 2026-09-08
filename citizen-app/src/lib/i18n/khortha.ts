@@ -1,0 +1,101 @@
+﻿import type { Dictionary } from "./en";
+
+const khortha: Dictionary = {
+  appName: "नागरिक समस्या पोर्टल",
+  welcome: "जोहार! स्वागत हे",
+  chooseLanguage: "आपन भाषा चुना",
+  continue: "आगे बढ़ा",
+
+  homeGreeting: "तोहें की करे चाहऽ ही?",
+  reportProblem: "समस्या दर्ज करा",
+  reportProblemHint: "आपन इलाका के कोनो समस्या के बारे में बतावा",
+  myReports: "हमर रपट (रिपोर्ट)",
+  myReportsHint: "दर्ज करल समस्या के खोज-खबर ला",
+  notifications: "सूचना सब",
+  notificationsComingSoon: "सूचना सब जल्दीये एजां देखाएत।",
+
+  reportTitle: "समस्या दर्ज करा",
+  fieldTitle: "समस्या के नाव",
+  fieldTitlePlaceholder: "उदा. बड़कागांव टोला में पिये के पानी के भारी किल्लत",
+  fieldDescription: "विस्तृत ब्योरा",
+  fieldDescriptionPlaceholder: "समस्या के बारे में आपन भाखा में खुल के लिखा",
+  fieldCategory: "कोन किसिम के समस्या हे",
+  fieldCategoryPlaceholder: "समस्या के किसिम चुना (मन होवे त)",
+  fieldDistrict: "जिला",
+  fieldDistrictPlaceholder: "उदा. हजारीबाग / बोकारो / धनबाद",
+  fieldVillage: "गाँव / मुहल्ला",
+  fieldVillagePlaceholder: "उदा. बड़कागांव",
+  fieldPeopleAffected: "केतना लोग परेसानी में हथ",
+  fieldPeopleAffectedPlaceholder: "उदा. 150 (मन होवे त)",
+  fieldPhotos: "फोटो सब",
+  fieldPhotosHint: "समस्या देखावे ले फोटो लगावा (मन होवे त)",
+  addPhoto: "फोटो जोड़ा",
+  fieldLocation: "जगह / लोकेशन",
+  useMyLocation: "हमर एखन के जगह लेवा",
+  locationCaptured: "जगह मिल गेल",
+  locationUnavailable: "जगह नय मिललो — तभो जमा कर सकऽ ही",
+  locationDenied: "लोकेशन के इजाजत नय मिलल। एकरे बिना आगे बढ़ा।",
+  gettingLocation: "जगह खोजल जा रहल हे...",
+
+  next: "आगे",
+  back: "पाछू",
+  edit: "सुधारा",
+  submitProblem: "समस्या जमा करा",
+  submitting: "जमा हो रहल हे...",
+
+  reviewTitle: "आपन रपट जांचा",
+  reviewSubtitle: "जमा करे ले पहिले सब ब्योरा ठीक से देख ला",
+  notProvided: "नय देल गेल",
+
+  successTitle: "समस्या सफलता से जमा भेल",
+  challengeIdLabel: "चैलेंज आईडी",
+  statusLabel: "हालत",
+  successMessage:
+    "तोहर समस्या दर्ज कर लेल गेल हे। एकर खोज-खबर 'हमर रपट' में मिलतो।",
+  goToMyReports: "हमर रपट पर जावा",
+  backToHome: "घर (होम) पर जावा",
+
+  myReportsTitle: "हमर रपट (रिपोर्ट)",
+  noReportsYet: "तूँ अखन तक कोनो समस्या दर्ज नय करले ही।",
+  reportProblemCta: "आपन पहिल समस्या दर्ज करा",
+  dateSubmitted: "दर्ज भेल तारीख",
+
+  reportDetailsTitle: "रपट के पूरा ब्योरा",
+  attachedEvidence: "लगावल फोटो सब",
+  noEvidence: "कोनो फोटो नय लागल हे",
+  submissionDate: "जमा करे के तारीख",
+  currentStatus: "एखन के हालत",
+
+  statusSubmitted: "जमा भेल",
+
+  errorGeneric: "कोनो गड़बड़ी भेल। फेर से कोसिस करा।",
+  errorRequired: "ई भरना जरूरी हे।",
+  loading: "लोड हो रहल हे...",
+  retry: "फेर से करा",
+
+  // Authentication
+  signIn: "लॉग इन करा",
+  signUp: "नया खाता बनावा",
+  signOut: "लॉग आउट",
+  continueWithGoogle: "गूगल से आगू बढ़ा",
+  orContinueWithEmail: "चाहे ईमेल से आगू बढ़ा",
+  emailLabel: "ईमेल पता",
+  emailPlaceholder: "apna-naam@example.com",
+  passwordLabel: "पासवर्ड",
+  passwordPlaceholder: "••••••••",
+  fullNameLabel: "पूरा नाव",
+  fullNamePlaceholder: "उदा. रमेश महतो",
+  authRequiredTitle: "समस्या दर्ज करे ले पहिले लॉग इन करा",
+  authRequiredSubtitle:
+    "समस्या दर्ज करे आ सरकार के समाधान देखे ले गूगल चाहे ईमेल से लॉग इन करा।",
+  alreadyHaveAccount: "खाता बनल हे? लॉग इन करा",
+  dontHaveAccount: "खाता नय हे? नया बनावा",
+  signingIn: "लॉग इन हो रहल हे...",
+  signingUp: "खाता बन रहल हे...",
+  authSuccess: "सफलतापूर्वक लॉग इन भेल!",
+  authError: "लॉग इन नय भेल। ईमेल-पासवर्ड जांचा।",
+  welcomeCitizen: "जोहार, नागरिक",
+  signedInAs: "खाता:",
+};
+
+export default khortha;

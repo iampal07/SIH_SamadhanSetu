@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">SamadhanSetu</string>
+    <string name="title_activity_main">SamadhanSetu</string>
+    <string name="package_name">com.outlaws.samadhansetu</string>
+    <string name="custom_url_scheme">com.outlaws.samadhansetu</string>
+</resources>

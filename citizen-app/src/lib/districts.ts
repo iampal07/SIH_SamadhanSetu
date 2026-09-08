@@ -1,0 +1,28 @@
+// The 24 districts of Jharkhand — offered as autocomplete suggestions only.
+// The field stays free text so a citizen is never blocked by an incomplete list.
+export const JHARKHAND_DISTRICTS = [
+  "Bokaro",
+  "Chatra",
+  "Deoghar",
+  "Dhanbad",
+  "Dumka",
+  "East Singhbhum",
+  "Garhwa",
+  "Giridih",
+  "Godda",
+  "Gumla",
+  "Hazaribagh",
+  "Jamtara",
+  "Khunti",
+  "Koderma",
+  "Latehar",
+  "Lohardaga",
+  "Pakur",
+  "Palamu",
+  "Ramgarh",
+  "Ranchi",
+  "Sahebganj",
+  "Seraikela Kharsawan",
+  "Simdega",
+  "West Singhbhum",
+] as const;
